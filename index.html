@@ -368,12 +368,16 @@ function updateLive() {
 }
 
 let connState = null;
-function setConn(live, msg) {
+function setConn(live, msg, noData) {
   const el = $('#conn');
   el.className = live ? 'live' : 'off';
-  el.textContent = live ? 'LIVE' : 'OFFLINE';
-  el.title = live ? 'Connected — quotes refresh every 5s (exchange data may be delayed)' : 'Data server unreachable: ' + (msg || '') + '\nStart it with: node server.js';
-  if (connState !== live && !live) PANELS.forEach(p => p.msg('DATA SERVER UNREACHABLE — run "node server.js" and open http://localhost:8080' + (msg ? ' (' + msg + ')' : ''), false));
+  el.textContent = live ? 'LIVE' : noData ? 'NO DATA' : 'OFFLINE';
+  el.title = live ? 'Connected — quotes refresh every 5s (exchange data may be delayed)'
+    : noData ? 'The data server is running but could not fetch market data from Yahoo Finance. Check the server console and your internet connection.'
+    : 'Data server unreachable: ' + (msg || '') + '\nStart it with: node server.js';
+  if (connState !== live && !live) PANELS.forEach(p => p.msg(noData
+    ? 'NO MARKET DATA — server.js is running but cannot reach Yahoo Finance (see server console)'
+    : 'DATA SERVER UNREACHABLE — run "node server.js" and open http://localhost:8080' + (msg ? ' (' + msg + ')' : ''), false));
   if (connState === false && live) PANELS.forEach(p => p.msg(''));
   connState = live;
 }
@@ -392,7 +396,8 @@ async function poll() {
     for (let i = 0; i < syms.length; i += 60) chunks.push(syms.slice(i, i + 60));
     const res = await Promise.all(chunks.map(c => api('quotes?symbols=' + encodeURIComponent(c.join(',')))));
     res.forEach(ingest);
-    setConn(true);
+    const got = res.reduce((n, r) => n + Object.keys(r || {}).length, 0);
+    if (got) setConn(true); else setConn(false, 'no quotes returned', true);
   } catch (e) {
     setConn(false, e.message);
   } finally {
