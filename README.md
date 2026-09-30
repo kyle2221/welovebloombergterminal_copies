@@ -21,6 +21,10 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | US yield curve | U.S. Treasury daily par yield curve |
 | Top news | Yahoo Finance, CNBC, MarketWatch, Federal Reserve and SEC RSS feeds |
 
+### Deploy on Vercel
+
+The repo is ready for Vercel with no build step. `index.html` is served as a static file, and `api/[name].js` runs the same data endpoints as serverless functions, with short CDN caching. Import the repo in Vercel (framework preset: **Other**) and it will deploy on every push.
+
 If the page is hosted somewhere else, point it at the server with `?api=https://your-server`.
 
 ## Using it
