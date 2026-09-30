@@ -3,7 +3,7 @@
 const { handle } = require('../lib/market');
 
 // Short CDN caching keeps Yahoo request volume low when many people use the deployment.
-const CDN_TTL = { quotes: 3, chart: 30, news: 60, screener: 60, search: 60, summary: 300, fin: 3600, ust: 3600, ping: 0 };
+const CDN_TTL = { quotes: 3, chart: 30, news: 60, screener: 60, search: 60, summary: 300, fin: 3600, ust: 3600, flights: 8, ships: 45, bases: 86400, eia: 3600, caps: 300, ping: 0 };
 
 module.exports = async (req, res) => {
   const url = new URL(req.url, 'http://x');

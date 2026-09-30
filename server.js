@@ -11,6 +11,14 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+
+// Optional API keys (AISSTREAM_API_KEY, EIA_API_KEY) from a local .env file
+try {
+  for (const line of fs.readFileSync(path.join(__dirname, '.env'), 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*"?([^"]*)"?\s*$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+  }
+} catch { /* no .env */ }
 const { ROUTES, handle } = require('./lib/market');
 
 const PORT = Number(process.env.PORT) || 8080;

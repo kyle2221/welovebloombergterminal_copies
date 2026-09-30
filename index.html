@@ -169,6 +169,42 @@ footer{border-top:1px solid var(--line);background:linear-gradient(#0c0f14,#0809
 #tapeInner span.it b{color:var(--amber);font-weight:500;margin-right:6px}
 @keyframes tape{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
+/* ---------- maps & geospatial ---------- */
+.geo{display:flex;flex-direction:column;height:100%}
+.mapwrap{position:relative;flex:1;min-height:260px}
+.map{position:absolute;inset:0;background:#0b0e14}
+.geostat{display:flex;flex-wrap:wrap;gap:3px 16px;padding:5px 10px;border-top:1px solid var(--line);font-size:11px;background:var(--panel2)}
+.geolist{flex:0 0 auto;max-height:32%;overflow:auto;border-top:1px solid var(--line)}
+label.chk{display:inline-flex;align-items:center;gap:5px;color:var(--dim);cursor:pointer;padding:2px 7px;border:1px solid var(--line2);border-radius:var(--r);font-size:11px;user-select:none}
+label.chk:has(input:checked){color:var(--txt);border-color:var(--amberdim);background:#1a1510}
+label.chk input{accent-color:var(--amber);margin:0}
+.maplegend{position:absolute;left:8px;bottom:22px;z-index:500;background:rgba(10,12,16,.88);border:1px solid var(--line2);border-radius:6px;padding:5px 9px;font-size:10px;line-height:1.7;pointer-events:none;max-width:70%}
+.maplegend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.acicon{background:none;border:0}
+.acicon div{width:18px;height:18px;filter:drop-shadow(0 0 2px rgba(0,0,0,.9))}
+.map.leaflet-container{background:#0b0e14;font:11px var(--mono)}
+.leaflet-tooltip{background:rgba(10,12,16,.96);color:var(--txt);border:1px solid var(--amberdim);border-radius:5px;font:11px/1.5 var(--mono);box-shadow:0 6px 18px rgba(0,0,0,.6);white-space:nowrap}
+.leaflet-tooltip-top:before{border-top-color:var(--amberdim)}
+.leaflet-tooltip b{color:var(--amber)}
+.leaflet-control-attribution{background:rgba(10,12,16,.75)!important;color:var(--dim)!important;font-size:9px}
+.leaflet-control-attribution a{color:var(--blue)!important}
+.leaflet-bar{border:1px solid var(--line2)!important;box-shadow:0 4px 12px rgba(0,0,0,.5)!important}
+.leaflet-bar a{background:#141821!important;color:var(--txt)!important;border-color:var(--line2)!important}
+.leaflet-bar a:hover{background:#1c2230!important;color:var(--amber)!important}
+.satgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.satcard{border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;background:var(--panel2);transition:border-color .15s,transform .15s}
+.satcard:hover{border-color:var(--amber2);transform:translateY(-2px)}
+.sattile{position:relative;height:150px;overflow:hidden;background:#111}
+.satc{position:absolute;left:50%;top:50%;width:0;height:0}
+.satc img{position:absolute;width:256px;height:256px;max-width:none}
+.satn{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:var(--yel);font-size:10px;padding:0 5px;border-radius:3px}
+.satcard .cap{padding:6px 9px}
+.satcard .cap b{color:var(--amber)}.satcard .cap small{display:block;color:var(--dim)}
+.hbar{display:flex;align-items:center;gap:8px;margin:3px 0}
+.hbar .nm{width:150px;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis}
+.hbar .b{height:10px;background:linear-gradient(90deg,var(--amber2),var(--amber));border-radius:2px}
+.hbar .v{color:var(--dim);font-size:11px}
+
 @media (max-width:1300px){.launch{display:none}}
 @media (max-width:1050px){#mkts{display:none}}
 @media (max-width:900px){
@@ -674,6 +710,7 @@ const HELP_GROUPS = [
   ['Market Monitors', ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'CRYP', 'GC', 'EQS']],
   ['News', ['TOP', 'N', 'CN']],
   ['Security Analysis', ['DES', 'GP', 'GIP', 'HP', 'Q', 'FA', 'ANR', 'DVD', 'COMP']],
+  ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'SHIP', 'SAT', 'OIL', 'MIL']],
   ['Portfolio & Lists', ['W', 'PORT', 'BUY', 'SELL']],
   ['Navigation', ['SECF', 'MENU', 'HELP']],
 ];
@@ -681,7 +718,7 @@ FN.HELP = {
   d: 'Help & function directory', cat: 'nav',
   r(p) {
     p.actions = [];
-    let h = `<div class="pad"><div class="h">FUNCTION DIRECTORY</div><div class="dim" style="margin:4px 0 8px">Type a security and/or function in the amber command line and press &lt;GO&gt; (Enter). Examples: <span class="amb">AAPL US EQUITY DES</span>, <span class="amb">SPX GP</span>, <span class="amb">EURUSD CURNCY GP</span>, <span class="amb">CL1 COMDTY</span>, <span class="amb">VOD LN EQUITY</span>, <span class="amb">COMP AAPL MSFT NVDA</span>, <span class="amb">BUY 100 AAPL</span>, <span class="amb">N FED</span>. Type a number &lt;GO&gt; to pick a numbered menu item.</div>`;
+    let h = `<div class="pad"><div class="h">FUNCTION DIRECTORY</div><div class="dim" style="margin:4px 0 8px">Type a security and/or function in the amber command line and press &lt;GO&gt; (Enter). Examples: <span class="amb">AAPL US EQUITY DES</span>, <span class="amb">SPX GP</span>, <span class="amb">EURUSD CURNCY GP</span>, <span class="amb">CL1 COMDTY</span>, <span class="amb">VOD LN EQUITY</span>, <span class="amb">COMP AAPL MSFT NVDA</span>, <span class="amb">BUY 100 AAPL</span>, <span class="amb">N FED</span>, <span class="amb">SHIP HORMUZ</span>, <span class="amb">FLT LONDON</span>. Type a number &lt;GO&gt; to pick a numbered menu item.</div>`;
     for (const [g, list] of HELP_GROUPS) {
       h += `<div class="box" style="margin-bottom:8px"><div class="t">${g}</div><div class="menu">`;
       for (const f of list) { p.actions.push(f); h += `<a data-cmd="${f}"><b>${p.actions.length})</b>${f} <span class="dim">${esc(FN[f]?.d || '')}</span></a>`; }
@@ -1419,6 +1456,454 @@ FN.BUY = { d: 'Paper buy (BUY <qty> <security>)', cat: 'port' };
 FN.SELL = { d: 'Paper sell (SELL <qty> <security>)', cat: 'port' };
 
 /* =====================================================================
+   Geospatial & alternative data: live flights, ships/tankers, shipping
+   chokepoints, energy infrastructure, military sites, satellite imagery, oil
+   ===================================================================== */
+// Leaflet also wants the global name L, which this page uses for live cells, so hand it back with noConflict()
+let leafletP = null;
+function loadLeaflet() {
+  return leafletP || (leafletP = new Promise((res, rej) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'vendor/leaflet/leaflet.css'; document.head.appendChild(css);
+    const js = document.createElement('script'); js.src = 'vendor/leaflet/leaflet.js';
+    js.onload = () => res(window.leaflet.noConflict());
+    js.onerror = () => { leafletP = null; rej(new Error('Could not load the map library')); };
+    document.head.appendChild(js);
+  }));
+}
+let CAPS = null;
+const getCaps = () => CAPS ? Promise.resolve(CAPS) : api('caps').then(c => (CAPS = c)).catch(() => ({ ais: 'baltic', eia: false }));
+
+// [code, name, lat, lon, zoom]
+const MAP_PRESETS = [
+  ['WORLD', 'World', 25, 20, 2], ['HORMUZ', 'Strait of Hormuz', 26.3, 56.2, 8], ['GULF', 'Persian Gulf', 27, 51.5, 6],
+  ['REDSEA', 'Red Sea & Bab el-Mandeb', 17, 40.5, 5], ['SUEZ', 'Suez Canal', 30.5, 32.35, 9], ['BOSPORUS', 'Bosporus', 41.1, 29.05, 11],
+  ['MALACCA', 'Strait of Malacca', 3.2, 100.6, 7], ['SINGAPORE', 'Singapore Strait', 1.22, 103.85, 11], ['TAIWAN', 'Taiwan Strait', 24.3, 119.6, 7],
+  ['SHANGHAI', 'Shanghai / Yangshan', 30.7, 122.1, 10], ['PANAMA', 'Panama Canal', 9.12, -79.75, 10], ['HOUSTON', 'Houston Ship Channel', 29.55, -94.95, 10],
+  ['LALB', 'Ports of LA & Long Beach', 33.73, -118.23, 12], ['ROTTERDAM', 'Rotterdam', 51.94, 4.12, 11], ['BALTIC', 'Baltic Sea (free AIS feed)', 59.6, 22.5, 6],
+  ['HELSINKI', 'Gulf of Finland', 60.0, 25.5, 9], ['NYC', 'New York airspace', 40.7, -73.85, 9], ['LONDON', 'London airspace', 51.5, -0.3, 9],
+  ['CHICAGO', "Chicago O'Hare", 41.98, -87.9, 10], ['DUBAI', 'Dubai airspace', 25.25, 55.35, 9], ['CUSHING', 'Cushing, OK tank farms', 35.955, -96.755, 13],
+];
+// [name, lat, lon, note, preset]
+const CHOKEPOINTS = [
+  ['Strait of Hormuz', 26.57, 56.25, 'Largest oil chokepoint: about 20 million b/d of oil in 2024 (EIA), roughly a fifth of global liquids consumption.', 'HORMUZ'],
+  ['Strait of Malacca', 2.5, 101.2, 'Shortest sea route between the Indian Ocean and the Pacific; key route for crude to China, Japan and Korea.', 'MALACCA'],
+  ['Suez Canal & SUMED', 30.45, 32.35, 'Links the Red Sea and the Mediterranean; the SUMED pipeline runs parallel.', 'SUEZ'],
+  ['Bab el-Mandeb', 12.6, 43.35, 'Southern entrance to the Red Sea; much traffic diverted around Africa during the 2024 Red Sea attacks.', 'REDSEA'],
+  ['Turkish Straits', 41.12, 29.06, 'Bosporus & Dardanelles: Black Sea exports of Russian and Caspian crude.', 'BOSPORUS'],
+  ['Danish Straits', 55.6, 10.9, 'Exit from the Baltic, including Russian crude from Primorsk and Ust-Luga.', 'BALTIC'],
+  ['Panama Canal', 9.08, -79.68, 'Pacific–Atlantic shortcut; draft limits were imposed during the 2023–24 drought.', 'PANAMA'],
+  ['Cape of Good Hope', -34.36, 18.47, 'Route for the largest tankers and for Red Sea diversions.', null],
+  ['Strait of Gibraltar', 35.95, -5.6, 'Atlantic–Mediterranean gateway.', null],
+];
+// Schematic main trade lanes (for orientation only, not vessel tracks)
+const LANES = [
+  ['Persian Gulf → Europe via Suez', [[26.7, 50.6], [26.5, 56.4], [24.5, 58.8], [15, 56], [12.6, 43.4], [20, 38.5], [27.5, 34], [29.9, 32.6], [31.4, 32.4], [34, 25], [37.2, 11.5], [37.5, 1], [35.95, -5.6], [43.5, -10], [48.5, -5.8], [51, 1.6], [51.98, 3.9]]],
+  ['Persian Gulf → East Asia via Malacca', [[24.5, 58.8], [15, 62], [5.2, 80.5], [6.2, 94.5], [3, 100.8], [1.2, 103.9], [10, 112], [20, 116.5], [24.5, 119.8], [30.6, 122.5], [33.3, 128.5], [33, 136.5], [34.9, 139.9]]],
+  ['Persian Gulf → Atlantic via Cape of Good Hope', [[15, 62], [-5, 55], [-20, 57], [-32, 35], [-35.5, 20], [-20, 5], [0, -10], [15, -30], [22, -60], [22.5, -86], [27, -91], [29.3, -94.7]]],
+  ['Cape → Northwest Europe', [[-20, 5], [5, -15], [25, -20], [36, -12], [43.5, -10]]],
+  ['US Gulf → Asia via Panama', [[29.3, -94.7], [22.5, -86], [15, -78], [9.4, -79.9], [8.9, -79.5], [5, -85], [15, -110], [25, -150], [32, -180]]],
+  ['US Gulf → Asia via Panama', [[32, 180], [31, 150], [30.6, 122.5]]],
+  ['Trans-Pacific', [[30.6, 122.5], [33, 135], [40, 160], [45, 180]]],
+  ['Trans-Pacific', [[45, -180], [45, -150], [38, -130], [33.7, -118.3]]],
+  ['Trans-Atlantic', [[51, 1.6], [48.5, -5.8], [45, -40], [40.4, -73.8]]],
+];
+// [name, lat, lon, note]
+const ENERGY_SITES = [
+  ['SPR Bryan Mound', 28.93, -95.37, 'US Strategic Petroleum Reserve salt-cavern site (Freeport, TX)'],
+  ['SPR Big Hill', 29.78, -94.2, 'US Strategic Petroleum Reserve (Winnie, TX)'],
+  ['SPR West Hackberry', 29.99, -93.4, 'US Strategic Petroleum Reserve (Hackberry, LA)'],
+  ['SPR Bayou Choctaw', 30.44, -91.36, 'US Strategic Petroleum Reserve (Plaquemine, LA)'],
+  ['Cushing, OK', 35.955, -96.755, 'WTI delivery point; largest US crude tank-farm hub'],
+  ['LOOP', 28.88, -90.02, 'Louisiana Offshore Oil Port, deepwater supertanker terminal'],
+  ['Houston Ship Channel', 29.73, -95.1, 'Largest US refining & petrochemical complex'],
+  ['Corpus Christi', 27.81, -97.4, 'Largest US crude export port'],
+  ['Ras Tanura', 26.64, 50.16, 'Saudi Aramco refinery and main crude export terminal'],
+  ['Kharg Island', 29.24, 50.31, "Handles most of Iran's crude exports"],
+  ['Fujairah', 25.17, 56.36, 'Major bunkering and storage hub outside Hormuz'],
+  ['Rotterdam', 51.95, 4.05, "Europe's largest port; ARA refining & storage hub"],
+  ['Jurong Island', 1.26, 103.69, 'Singapore refining & petrochemicals hub'],
+  ['Primorsk', 60.35, 28.67, 'Russian Baltic crude export terminal'],
+];
+const SHIP_NAV = { 0: 'Under way', 1: 'At anchor', 2: 'Not under command', 3: 'Restricted', 4: 'Constrained by draught', 5: 'Moored', 6: 'Aground', 7: 'Fishing', 8: 'Sailing' };
+function shipCat(t) {
+  if (t == null || t === 0) return ['Unknown', '#7d8594'];
+  if (t >= 80 && t <= 89) return ['Tanker', '#ff4d5e'];
+  if (t >= 70 && t <= 79) return ['Cargo', '#21d07a'];
+  if (t >= 60 && t <= 69) return ['Passenger', '#5aa9ff'];
+  if (t === 30) return ['Fishing', '#b58bff'];
+  if (t === 35) return ['Military', '#ffd84d'];
+  if (t === 31 || t === 32 || t === 52) return ['Tug / Tow', '#ff9f43'];
+  if (t === 36 || t === 37) return ['Sailing / Pleasure', '#00e5ff'];
+  if (t >= 40 && t <= 49) return ['High-speed craft', '#8fd3ff'];
+  return ['Other', '#9aa4b2'];
+}
+const altColor = a => a.mil ? '#ff4d5e' : a.gnd ? '#7d8594' : (a.alt ?? 0) < 10000 ? '#21d07a' : (a.alt ?? 0) < 25000 ? '#ffd84d' : '#ffa62b';
+const PLANE_PATH = 'M12 2c.6 0 1 .9 1 2v5l8 5v2l-8-2.5V19l2.5 2v1.5L12 21.5 8.5 22.5V21l2.5-2v-5.5L3 16v-2l8-5V4c0-1.1.4-2 1-2z';
+const normLon = x => ((x + 540) % 360) - 180;
+const gibsDate = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+const MAP_LAYERS = [['flights', 'Flights'], ['ships', 'Ships'], ['lanes', 'Chokepoints & lanes'], ['energy', 'Energy sites'], ['bases', 'Military sites']];
+const MAP_BASES = [['dark', 'Dark map'], ['sat', 'Satellite (hi-res)'], ['modis', 'Satellite (daily, NASA)'], ['night', 'Night lights (NASA)']];
+
+function mapState(arg, def) {
+  let st = arg && typeof arg === 'object' ? { ...arg } : {};
+  if (typeof arg === 'string' && arg) {
+    const q = arg.toUpperCase();
+    const pr = MAP_PRESETS.find(x => x[0] === q) || MAP_PRESETS.find(x => x[1].toUpperCase().includes(q));
+    if (pr) st.preset = pr[0];
+  }
+  st.layers = st.layers || def.layers;
+  st.base = st.base || def.base;
+  st.shipf = st.shipf || 'all';
+  if (!st.c) { const pr = MAP_PRESETS.find(x => x[0] === (st.preset || def.preset)) || MAP_PRESETS[0]; st.c = [pr[2], pr[3]]; st.z = pr[4]; st.preset = pr[0]; }
+  return st;
+}
+function mapPage(def) {
+  return {
+    d: def.d, cat: 'geo',
+    r(p, y, arg) {
+      const st = p.cur.arg = mapState(arg, def);
+      p.title = def.title;
+      return `<div class="geo">
+        <div class="bar">
+          <select class="inp" data-preset title="Jump to region"><option value="">— Region —</option>${MAP_PRESETS.map(x => `<option value="${x[0]}" ${x[0] === st.preset ? 'selected' : ''}>${esc(x[1])}</option>`).join('')}</select>
+          ${MAP_LAYERS.map(([k, l]) => `<label class="chk"><input type="checkbox" data-layer="${k}" ${st.layers.includes(k) ? 'checked' : ''}>${l}</label>`).join('')}
+          <select class="inp" data-shipf title="Vessel filter"><option value="all">All vessels</option><option value="tc" ${st.shipf === 'tc' ? 'selected' : ''}>Tankers + cargo</option><option value="tanker" ${st.shipf === 'tanker' ? 'selected' : ''}>Tankers only</option><option value="cargo" ${st.shipf === 'cargo' ? 'selected' : ''}>Cargo only</option></select>
+          <select class="inp" data-base title="Base map">${MAP_BASES.map(([k, l]) => `<option value="${k}" ${k === st.base ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="mapwrap"><div class="map"><div class="empty spin"></div></div><div class="maplegend"></div></div>
+        <div class="geostat"></div>
+        <div class="geolist"></div>
+      </div>`;
+    },
+    m(p, el) { initMap(p, el, p.cur.arg); },
+  };
+}
+
+async function initMap(p, el, st) {
+  let L;
+  try { L = await loadLeaflet(); } catch (e) { return fail(el, e, '.map'); }
+  if (!p.alive(el)) return;
+  const node = $('.map', el); node.innerHTML = '';
+  const map = L.map(node, { worldCopyJump: true, preferCanvas: true, minZoom: 2, keyboard: false, zoomSnap: 0.5 }).setView(st.c, st.z);
+  const ro = new ResizeObserver(() => map.invalidateSize());
+  ro.observe(node);
+  p.cleanup = () => { ro.disconnect(); map.remove(); };
+
+  const tl = (url, o) => L.tileLayer(url, { maxZoom: 19, ...o });
+  const bases = {
+    dark: tl('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', attribution: '© OpenStreetMap contributors © CARTO' }),
+    sat: L.layerGroup([
+      tl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }),
+      tl('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { opacity: 0.85 }),
+    ]),
+    modis: tl(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${gibsDate()}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`, { maxNativeZoom: 9, maxZoom: 13, attribution: `NASA GIBS · MODIS Terra true color ${gibsDate()}` }),
+    night: tl('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png', { maxNativeZoom: 8, maxZoom: 13, attribution: 'NASA Black Marble (VIIRS night lights)' }),
+  };
+  let baseLayer = bases[st.base] || bases.dark;
+  baseLayer.addTo(map);
+
+  const G = { flights: L.layerGroup(), ships: L.layerGroup(), lanes: L.layerGroup(), energy: L.layerGroup(), bases: L.layerGroup() };
+  const data = { flights: null, ships: null, bases: null };
+  const status = { flights: '', ships: '', bases: '' };
+  const tip = (m, html) => m.bindTooltip(html, { direction: 'top', offset: [0, -6], sticky: false });
+
+  // static reference layers
+  LANES.forEach(([n, pts]) => tip(L.polyline(pts, { color: '#ffa62b', weight: 1.6, opacity: 0.55, dashArray: '6 6' }), `<b>${esc(n)}</b><br><span class="dim">Schematic main trade lane</span>`).addTo(G.lanes));
+  CHOKEPOINTS.forEach(([n, la, lo, note, pr]) => {
+    const m = L.circleMarker([la, lo], { radius: 9, color: '#ffa62b', weight: 2, fillColor: '#ffa62b', fillOpacity: 0.25 });
+    tip(m, `<b>${esc(n)}</b><br>${esc(note)}<br><span class="dim">Source: EIA World Oil Transit Chokepoints</span>`);
+    m.on('click', () => { const x = MAP_PRESETS.find(q => q[0] === pr); map.setView(x ? [x[2], x[3]] : [la, lo], x ? x[4] : 7); });
+    m.addTo(G.lanes);
+  });
+  ENERGY_SITES.forEach(([n, la, lo, note]) => tip(L.circleMarker([la, lo], { radius: 5, color: '#000', weight: 1, fillColor: '#ffd84d', fillOpacity: 0.95 }), `<b>${esc(n)}</b><br>${esc(note)}`).on('click', () => map.setView([la, lo], 14)).addTo(G.energy));
+
+  const on = k => st.layers.includes(k);
+  Object.entries(G).forEach(([k, g]) => on(k) && g.addTo(map));
+
+  const saveView = () => {
+    const c = map.getCenter();
+    st.c = [+c.lat.toFixed(4), +normLon(c.lng).toFixed(4)]; st.z = map.getZoom();
+    store.set('panel' + p.i, p.cur);
+  };
+  const legend = () => {
+    let h = '';
+    if (on('flights')) h += `<div><i style="background:#21d07a"></i>&lt;10k ft <i style="background:#ffd84d;margin-left:6px"></i>&lt;25k <i style="background:#ffa62b;margin-left:6px"></i>cruise <i style="background:#ff4d5e;margin-left:6px"></i>military <i style="background:#7d8594;margin-left:6px"></i>ground</div>`;
+    if (on('ships')) h += `<div>${['Tanker', 'Cargo', 'Passenger', 'Fishing', 'Tug / Tow', 'Other'].map(n => { const c = { Tanker: '#ff4d5e', Cargo: '#21d07a', Passenger: '#5aa9ff', Fishing: '#b58bff', 'Tug / Tow': '#ff9f43', Other: '#9aa4b2' }[n]; return `<i style="background:${c}"></i>${n} `; }).join('')}</div>`;
+    if (on('lanes')) h += `<div><i style="background:#ffa62b"></i>Oil chokepoint · dashed = schematic lane</div>`;
+    if (on('energy')) h += `<div><i style="background:#ffd84d"></i>Energy infrastructure</div>`;
+    if (on('bases')) h += `<div><i style="background:#c77dff"></i>Military site (OpenStreetMap)</div>`;
+    const lg = $('.maplegend', el); lg.innerHTML = h; lg.style.display = h ? '' : 'none';
+  };
+  const drawStatus = () => {
+    const parts = [];
+    if (on('flights')) parts.push(`<span><b class="amb">Flights</b> ${status.flights}</span>`);
+    if (on('ships')) parts.push(`<span><b class="amb">Ships</b> ${status.ships}</span>`);
+    if (on('bases')) parts.push(`<span><b class="amb">Military sites</b> ${status.bases}</span>`);
+    parts.push(`<span class="dim">z${map.getZoom()} · ${map.getCenter().lat.toFixed(2)}, ${normLon(map.getCenter().lng).toFixed(2)}</span>`);
+    $('.geostat', el).innerHTML = parts.join('');
+  };
+  const drawList = () => {
+    let h = '';
+    const box = map.getBounds();
+    if (on('ships') && data.ships) {
+      const rows = data.ships.filter(shipFilter).filter(s => box.contains([s.lat, s.lon])).sort((a, b) => (b.type >= 80 && b.type <= 89) - (a.type >= 80 && a.type <= 89) || (b.sog || 0) - (a.sog || 0)).slice(0, 150);
+      h += `<table><thead><tr><th class="l">Vessel</th><th class="l">Type</th><th>Speed kn</th><th>Course</th><th>Draught m</th><th class="l">Status</th><th class="l">Destination</th><th class="l">MMSI</th></tr></thead><tbody>` +
+        rows.map(s => { const [cn, cc] = shipCat(s.type); return `<tr class="clk" data-fly="${s.lat},${s.lon}"><td class="l amb">${esc(s.name || '—')}</td><td class="l"><span style="color:${cc}">●</span> ${cn}</td><td>${ok(s.sog) ? nf(s.sog, 1) : '—'}</td><td>${ok(s.cog) ? nf(s.cog, 0) + '°' : '—'}</td><td>${ok(s.draught) && s.draught ? nf(s.draught, 1) : '—'}</td><td class="l dim">${SHIP_NAV[s.nav] || ''}</td><td class="l">${esc(s.dest)}</td><td class="l dim">${s.mmsi}</td></tr>`; }).join('') + '</tbody></table>';
+    }
+    if (on('flights') && data.flights) {
+      const rows = data.flights.filter(a => box.contains([a.lat, a.lon])).sort((a, b) => b.mil - a.mil || (b.alt || 0) - (a.alt || 0)).slice(0, 150);
+      h += `<table><thead><tr><th class="l">Flight</th><th class="l">Reg</th><th class="l">Type</th><th>Alt ft</th><th>Speed kt</th><th>Track</th><th>V/S fpm</th><th class="l">Squawk</th></tr></thead><tbody>` +
+        rows.map(a => `<tr class="clk" data-fly="${a.lat},${a.lon}"><td class="l amb">${esc(a.cs || a.hex)}${a.mil ? ' <span class="dn">MIL</span>' : ''}</td><td class="l">${esc(a.reg)}</td><td class="l dim" title="${esc(a.desc)}">${esc(a.type)}</td><td>${a.gnd ? 'GND' : ok(a.alt) ? nf(a.alt, 0) : '—'}</td><td>${ok(a.gs) ? nf(a.gs, 0) : '—'}</td><td>${ok(a.trk) ? nf(a.trk, 0) + '°' : '—'}</td><td class="${cls(a.vr)}">${ok(a.vr) && a.vr ? sgn(a.vr, 0) : ''}</td><td class="l ${['7500', '7600', '7700'].includes(a.sq) ? 'dn' : 'dim'}">${esc(a.sq)}</td></tr>`).join('') + '</tbody></table>';
+    }
+    if (on('bases') && data.bases) {
+      const rows = data.bases.filter(b => box.contains([b.lat, b.lon])).slice(0, 200);
+      h += `<table><thead><tr><th class="l">Military site</th><th class="l">Kind</th><th class="l">Operator</th><th>Lat</th><th>Lon</th></tr></thead><tbody>` +
+        rows.map(b => `<tr class="clk" data-fly="${b.lat},${b.lon}"><td class="l amb">${esc(b.name)}</td><td class="l">${esc(b.kind.replace('_', ' '))}</td><td class="l dim">${esc(b.op)}</td><td>${nf(b.lat, 3)}</td><td>${nf(b.lon, 3)}</td></tr>`).join('') + '</tbody></table>';
+    }
+    $('.geolist', el).innerHTML = h;
+    $('.geolist', el).style.display = h ? '' : 'none';
+  };
+  $('.geolist', el).addEventListener('click', e => { const r = e.target.closest('[data-fly]'); if (r) { const [la, lo] = r.dataset.fly.split(',').map(Number); map.setView([la, lo], Math.max(map.getZoom(), 11)); } });
+
+  const shipFilter = s => {
+    const t = s.type;
+    const tanker = t >= 80 && t <= 89, cargo = t >= 70 && t <= 79;
+    return st.shipf === 'all' || (st.shipf === 'tanker' && tanker) || (st.shipf === 'cargo' && cargo) || (st.shipf === 'tc' && (tanker || cargo));
+  };
+  // Visible bbox with longitudes normalised to [-180, 180]
+  const viewBox = () => {
+    const b = map.getBounds(), cw = normLon(map.getCenter().lng), half = (b.getEast() - b.getWest()) / 2;
+    return `s=${Math.max(-90, b.getSouth()).toFixed(2)}&w=${Math.max(-180, cw - half).toFixed(2)}&n=${Math.min(90, b.getNorth()).toFixed(2)}&e=${Math.min(180, cw + half).toFixed(2)}`;
+  };
+  const time = () => { const d = new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
+  const planeIcons = {};
+  const planeIcon = a => {
+    const c = altColor(a), r = Math.round((a.trk || 0) / 5) * 5, k = c + r;
+    return planeIcons[k] || (planeIcons[k] = L.divIcon({ className: 'acicon', iconSize: [18, 18], iconAnchor: [9, 9], html: `<div style="transform:rotate(${r}deg)"><svg viewBox="0 0 24 24" width="18" height="18"><path d="${PLANE_PATH}" fill="${c}" stroke="#000" stroke-width=".7"/></svg></div>` }));
+  };
+
+  let flSeq = 0, shSeq = 0, bsSeq = 0;
+  async function loadFlights() {
+    if (!on('flights')) return;
+    if (map.getZoom() < 5) { G.flights.clearLayers(); data.flights = null; status.flights = '<span class="dim">zoom in (≥5) to load live flights</span>'; drawStatus(); drawList(); return; }
+    const c = map.getCenter(), r = Math.min(250, Math.max(20, map.distance(c, map.getBounds().getNorthEast()) / 1852));
+    const my = ++flSeq;
+    status.flights = '<span class="spin"></span>'; drawStatus();
+    try {
+      const d = await api(`flights?lat=${c.lat.toFixed(2)}&lon=${normLon(c.lng).toFixed(2)}&r=${Math.round(r)}`);
+      if (!p.alive(el) || my !== flSeq) return;
+      data.flights = d.ac;
+      G.flights.clearLayers();
+      d.ac.forEach(a => tip(L.marker([a.lat, a.lon], { icon: planeIcon(a), keyboard: false }),
+        `<b>${esc(a.cs || a.hex)}</b>${a.mil ? ' <span class="dn">MILITARY</span>' : ''}<br>${esc([a.reg, a.type, a.desc].filter(Boolean).join(' · '))}${a.op ? '<br>' + esc(a.op) : ''}<br>${a.gnd ? 'On ground' : `${ok(a.alt) ? nf(a.alt, 0) + ' ft' : '—'} · ${ok(a.gs) ? nf(a.gs, 0) + ' kt' : '—'} · ${ok(a.trk) ? nf(a.trk, 0) + '°' : ''}`}${a.sq ? '<br>Squawk ' + esc(a.sq) : ''}`).addTo(G.flights));
+      const mil = d.ac.filter(a => a.mil).length;
+      status.flights = `${d.ac.length} aircraft${mil ? ` (${mil} military)` : ''} within ${Math.round(r)} nm · ${esc(d.src)} · ${time()}`;
+    } catch (e) { if (my === flSeq) status.flights = `<span class="dn">${esc(e.message)}</span>`; }
+    drawStatus(); drawList();
+  }
+  async function loadShips() {
+    if (!on('ships')) return;
+    if (map.getZoom() < 5) { G.ships.clearLayers(); data.ships = null; status.ships = '<span class="dim">zoom in (≥5) to load vessels</span>'; drawStatus(); drawList(); return; }
+    const my = ++shSeq;
+    status.ships = '<span class="spin"></span>'; drawStatus();
+    try {
+      const d = await api('ships?' + viewBox());
+      if (!p.alive(el) || my !== shSeq) return;
+      data.ships = d.ships;
+      renderShips();
+      const tk = d.ships.filter(s => s.type >= 80 && s.type <= 89).length, cg = d.ships.filter(s => s.type >= 70 && s.type <= 79).length;
+      status.ships = `${d.ships.length} vessels (${tk} tankers, ${cg} cargo) · ${esc(d.src)}${d.coverage !== 'global' ? ` · <span class="yel">coverage: ${esc(d.coverage)} only — add a free AISSTREAM_API_KEY for global</span>` : ''} · ${time()}`;
+    } catch (e) { if (my === shSeq) status.ships = `<span class="dn">${esc(e.message)}</span>`; }
+    drawStatus(); drawList();
+  }
+  function renderShips() {
+    G.ships.clearLayers();
+    (data.ships || []).filter(shipFilter).forEach(s => {
+      const [cn, cc] = shipCat(s.type);
+      const m = L.circleMarker([s.lat, s.lon], { radius: s.type >= 80 && s.type <= 89 ? 5 : 4, color: '#000', weight: 0.8, fillColor: cc, fillOpacity: 0.9 });
+      tip(m, `<b>${esc(s.name || 'MMSI ' + s.mmsi)}</b><br>${cn}${s.dest ? ' → ' + esc(s.dest) : ''}<br>${ok(s.sog) ? nf(s.sog, 1) + ' kn' : '—'} · ${ok(s.cog) ? nf(s.cog, 0) + '°' : ''}${ok(s.draught) && s.draught ? ` · draught ${nf(s.draught, 1)} m` : ''}<br><span class="dim">${SHIP_NAV[s.nav] || ''} · MMSI ${s.mmsi}</span>`);
+      m.addTo(G.ships);
+    });
+  }
+  async function loadBases() {
+    if (!on('bases')) return;
+    if (map.getZoom() < 6) { G.bases.clearLayers(); data.bases = null; status.bases = '<span class="dim">zoom in (≥6) to load</span>'; drawStatus(); drawList(); return; }
+    const my = ++bsSeq;
+    status.bases = '<span class="spin"></span>'; drawStatus();
+    try {
+      const d = await api('bases?' + viewBox());
+      if (!p.alive(el) || my !== bsSeq) return;
+      data.bases = d.sites;
+      G.bases.clearLayers();
+      d.sites.forEach(x => tip(L.circleMarker([x.lat, x.lon], { radius: 5, color: '#000', weight: 1, fillColor: '#c77dff', fillOpacity: 0.9 }), `<b>${esc(x.name)}</b><br>${esc(x.kind.replace('_', ' '))}${x.op ? ' · ' + esc(x.op) : ''}<br><span class="dim">OpenStreetMap</span>`).addTo(G.bases));
+      status.bases = `${d.sites.length} named sites · ${esc(d.src)} · ${time()}`;
+    } catch (e) { if (my === bsSeq) status.bases = `<span class="dn">${esc(e.message)}</span>`; }
+    drawStatus(); drawList();
+  }
+
+  // controls
+  $('[data-preset]', el).onchange = e => { const x = MAP_PRESETS.find(q => q[0] === e.target.value); if (x) { st.preset = x[0]; map.setView([x[2], x[3]], x[4]); } };
+  $('[data-base]', el).onchange = e => { map.removeLayer(baseLayer); baseLayer = bases[e.target.value]; baseLayer.addTo(map); baseLayer.bringToBack?.(); st.base = e.target.value; saveView(); };
+  $('[data-shipf]', el).onchange = e => { st.shipf = e.target.value; saveView(); renderShips(); drawList(); };
+  $$('[data-layer]', el).forEach(cb => cb.onchange = () => {
+    const k = cb.dataset.layer;
+    st.layers = cb.checked ? [...new Set([...st.layers, k])] : st.layers.filter(x => x !== k);
+    if (cb.checked) { G[k].addTo(map); ({ flights: loadFlights, ships: loadShips, bases: loadBases }[k] || (() => { }))(); }
+    else { map.removeLayer(G[k]); data[k] = null; }
+    saveView(); legend(); drawStatus(); drawList();
+  });
+  let mt = null;
+  map.on('moveend', () => { saveView(); drawStatus(); clearTimeout(mt); mt = setTimeout(() => { loadFlights(); loadShips(); loadBases(); drawList(); }, 450); });
+
+  legend(); drawStatus();
+  loadFlights(); loadShips(); loadBases();
+  let n = 0;
+  p.tick = () => { n++; if (n % 2 === 0) loadFlights(); if (n % 12 === 0) loadShips(); };
+}
+
+FN.BMAP = mapPage({ d: 'World map: flights, ships, chokepoints, energy & military sites', title: 'World Map', layers: ['lanes', 'energy'], base: 'dark', preset: 'WORLD' });
+FN.FLT = mapPage({ d: 'Live flight tracker (ADS-B)', title: 'Live Flights — ADS-B', layers: ['flights'], base: 'dark', preset: 'NYC' });
+FN.SHIP = mapPage({ d: 'Live ship & tanker tracker (AIS)', title: 'Live Shipping — AIS', layers: ['ships', 'lanes', 'energy'], base: 'dark', preset: 'BALTIC' });
+FN.MIL = mapPage({ d: 'Military sites map (OpenStreetMap)', title: 'Military Sites — OpenStreetMap', layers: ['bases'], base: 'sat', preset: 'WORLD' });
+// SHIP opens on a global chokepoint when a global AIS key is configured
+const shipR = FN.SHIP.r;
+FN.SHIP.r = (p, y, arg) => { if (!arg && CAPS && CAPS.ais === 'global') arg = 'SINGAPORE'; return shipR(p, y, arg); };
+getCaps();
+
+// ---------------------------------------------------------------- SAT: satellite imagery watchlist
+// [group, name, lat, lon, zoom, note]
+const SAT_SITES = [
+  ['Retail & parking', 'Mall of America', 44.8549, -93.2422, 16, 'Largest US mall: parking lots and ramps'],
+  ['Retail & parking', 'King of Prussia Mall', 40.0885, -75.3925, 16, 'Large East Coast mall'],
+  ['Retail & parking', 'The Galleria, Houston', 29.739, -95.4637, 16, 'Retail parking structures'],
+  ['Retail & parking', 'Disneyland Resort', 33.8121, -117.919, 16, 'Theme park and parking'],
+  ['Autos', 'Tesla Fremont Factory', 37.4945, -121.944, 16, 'Finished-vehicle lots'],
+  ['Autos', 'Tesla Giga Texas', 30.222, -97.617, 15, 'Plant, lots and construction'],
+  ['Autos', 'Ford Rouge Complex', 42.305, -83.155, 15, 'Dearborn, MI: F-150 plant lots'],
+  ['Aerospace', 'Boeing Everett Factory', 47.923, -122.275, 15, 'Widebody line; parked aircraft on flight line'],
+  ['Aerospace', 'Boeing Renton Factory', 47.496, -122.208, 16, '737 final assembly'],
+  ['Aerospace', 'Victorville (SCLA)', 34.597, -117.383, 14, 'Aircraft storage & boneyard'],
+  ['Aerospace', 'Pinal Airpark', 32.508, -111.325, 14, 'Aircraft storage & boneyard'],
+  ['Energy', 'Cushing, OK tank farms', 35.955, -96.755, 14, 'Floating-roof crude tanks (WTI hub)'],
+  ['Energy', 'SPR Bryan Mound', 28.93, -95.37, 14, 'Strategic Petroleum Reserve site'],
+  ['Energy', 'Ras Tanura', 26.64, 50.16, 13, 'Saudi crude export terminal'],
+  ['Energy', 'Fujairah', 25.17, 56.36, 13, 'Storage tanks & anchorage'],
+  ['Ports & logistics', 'Ports of LA & Long Beach', 33.745, -118.235, 13, 'Container terminals & ship queue'],
+  ['Ports & logistics', 'Rotterdam Maasvlakte', 51.96, 4.03, 13, 'Container & oil terminals'],
+  ['Ports & logistics', 'Yangshan Deep-Water Port', 30.62, 122.07, 13, 'Shanghai container port'],
+  ['Ports & logistics', 'Memphis FedEx hub', 35.042, -89.977, 14, 'FedEx World Hub aircraft ramp'],
+];
+function satThumb(lat, lon, z) {
+  const n = 2 ** z, xf = (lon + 180) / 360 * n, lr = lat * Math.PI / 180, yf = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
+  const x0 = Math.floor(xf - 0.5), y0 = Math.floor(yf - 0.5);
+  let h = '<div class="satc">';
+  for (let dx = 0; dx < 2; dx++) for (let dy = 0; dy < 2; dy++) {
+    h += `<img loading="lazy" alt="" src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y0 + dy}/${x0 + dx}" style="left:${Math.round((dx - (xf - x0)) * 256)}px;top:${Math.round((dy - (yf - y0)) * 256)}px">`;
+  }
+  return h + '</div>';
+}
+FN.SAT = {
+  d: 'Satellite imagery watchlist (parking lots, factories, ports, tank farms)', cat: 'geo',
+  r(p) {
+    p.title = 'Satellite Imagery Watchlist';
+    p.actions = SAT_SITES.map((_, i) => 'SATOPEN ' + i);
+    let h = `<div class="pad"><div class="dim" style="margin-bottom:8px;white-space:normal">High-resolution Esri World Imagery of sites that alternative-data analysts watch: parking lots, factory lots, aircraft storage, ports and tank farms. Click a site to open it on the live map. Imagery is a mosaic and is usually months to a few years old. Daily NASA imagery is available in BMAP (base: Satellite daily), but at ~250 m resolution. Automated car counts come from paid providers, so there are none here.</div>`;
+    let g = null, i = 0;
+    for (const [grp, name, la, lo, z, note] of SAT_SITES) {
+      if (grp !== g) { if (g) h += '</div>'; g = grp; h += `<div class="h" style="margin:10px 0 6px">${esc(grp)}</div><div class="satgrid">`; }
+      h += `<div class="satcard" data-sat="${i}"><div class="sattile">${satThumb(la, lo, z)}<span class="satn">${i + 1}</span></div><div class="cap"><b>${esc(name)}</b><small>${esc(note)}</small><small>${nf(la, 4)}, ${nf(lo, 4)}</small></div></div>`;
+      i++;
+    }
+    return h + '</div><div class="dim" style="margin-top:10px">Imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community.</div></div>';
+  },
+  m(p, el) {
+    el.addEventListener('click', e => { const c = e.target.closest('[data-sat]'); if (c) openSat(p, +c.dataset.sat); });
+  },
+};
+function openSat(p, i) {
+  const s = SAT_SITES[i];
+  if (!s) return p.msg('No such site');
+  p.go('BMAP', null, { base: 'sat', c: [s[2], s[3]], z: s[4] + 1, layers: ['energy'], preset: null });
+}
+
+// ---------------------------------------------------------------- OIL dashboard
+// Proved reserves, thousand million barrels, end-2020 (BP Statistical Review of World Energy 2021)
+const OIL_RESERVES = [['Venezuela', 303.8], ['Saudi Arabia', 297.5], ['Canada', 168.1], ['Iran', 157.8], ['Iraq', 145.0], ['Russia', 107.8], ['Kuwait', 101.5], ['United Arab Emirates', 97.8], ['United States', 68.8], ['Libya', 48.4], ['Nigeria', 36.9], ['Kazakhstan', 30.0], ['China', 26.0], ['Qatar', 25.2]];
+const OIL_BENCH = [['CL1', 'CL=F', 'WTI Crude (NYMEX)'], ['CO1', 'BZ=F', 'Brent Crude'], ['NG1', 'NG=F', 'Henry Hub Natural Gas'], ['XB1', 'RB=F', 'RBOB Gasoline'], ['HO1', 'HO=F', 'NY Harbor ULSD / Heating Oil']];
+const OIL_EQ = ['XOM', 'CVX', 'SHEL', 'TTE', 'BP', 'COP', 'EOG', 'OXY', 'SLB', 'PSX', 'VLO', 'MPC'];
+const MONTH_CODES = 'FGHJKMNQUVXZ';
+function futSyms(root) {
+  const out = [], d = new Date();
+  for (let i = 0; i < 20; i++) {
+    const m = new Date(d.getFullYear(), d.getMonth() + i, 1);
+    out.push({ sym: `${root}${MONTH_CODES[m.getMonth()]}${String(m.getFullYear()).slice(2)}.NYM`, label: m.toLocaleDateString('en-US', { month: 'short' }) + ' ' + String(m.getFullYear()).slice(2), key: m.getFullYear() * 12 + m.getMonth() });
+  }
+  return out;
+}
+FN.OIL = {
+  d: 'Oil dashboard: futures curves, inventories, SPR, reserves, chokepoints', cat: 'geo',
+  r(p) {
+    p.title = 'Oil & Energy Monitor';
+    p.syms = [...OIL_BENCH.map(b => b[1]), ...OIL_EQ];
+    return `<div class="pad"><div class="cols">
+      <div class="box"><div class="t">Benchmarks</div><table><tbody>${OIL_BENCH.map(([c, y, n]) => `<tr class="clk" data-cmd="${c} COMDTY GP"><td class="l amb">${c}</td><td class="l name">${esc(n)}</td><td>${L(y, 'price')}</td><td>${L(y, 'chg')}</td><td>${L(y, 'pct')}</td></tr>`).join('')}
+        <tr><td class="l amb">BRENT–WTI</td><td class="l name">Spread (USD/bbl)</td><td class="spread" colspan="3"></td></tr></tbody></table></div>
+      <div class="box"><div class="t">Futures Curve — WTI vs Brent</div><div class="legend"><span><i style="background:${COLORS[0]}"></i>WTI</span><span><i style="background:${COLORS[1]}"></i>Brent</span><span class="curvestat dim"></span></div><div class="chartwrap" style="min-height:200px"><canvas class="chart fc"></canvas></div></div>
+    </div>
+    <div class="box" style="margin-top:10px"><div class="t">US Petroleum Inventories — EIA Weekly</div><div class="eia"><div class="spin"></div></div></div>
+    <div class="cols" style="margin-top:10px">
+      <div class="box"><div class="t">Proved Oil Reserves by Country</div>${(() => { const mx = OIL_RESERVES[0][1]; return OIL_RESERVES.map(([c, v]) => `<div class="hbar"><span class="nm">${esc(c)}</span><span class="b" style="width:${(v / mx * 55).toFixed(1)}%"></span><span class="v">${nf(v, 1)}</span></div>`).join(''); })()}
+        <div class="dim" style="margin-top:6px;white-space:normal">Billion barrels, end-2020. Source: BP Statistical Review of World Energy 2021. Canada includes oil sands; Venezuela includes Orinoco extra-heavy.</div></div>
+      <div class="box"><div class="t">Oil Transit Chokepoints</div>${CHOKEPOINTS.map(([n, , , note, pr]) => `<div style="margin-bottom:6px;white-space:normal"><a class="${pr ? 'amb' : ''}" ${pr ? `data-cmd="SHIP ${pr}" style="cursor:pointer"` : ''}>${esc(n)}${pr ? ' ›' : ''}</a> <span class="dim">${esc(note)}</span></div>`).join('')}</div>
+    </div>
+    <div class="box" style="margin-top:10px"><div class="t">Energy Equities</div><table><thead><tr><th class="l">Ticker</th><th class="l">Name</th><th>Last</th><th>Net Chg</th><th>%Chg</th><th>Mkt Cap</th><th>P/E</th><th>Div Yld</th></tr></thead><tbody>
+      ${OIL_EQ.map(y => `<tr class="clk" data-cmd="${y} US EQUITY DES"><td class="l amb">${y}</td><td class="l name">${esc(nameOf(y))}</td><td>${L(y, 'price')}</td><td>${L(y, 'chg')}</td><td>${L(y, 'pct')}</td><td>${L(y, 'mcap')}</td><td>${L(y, 'pe')}</td><td>${L(y, 'dy')}</td></tr>`).join('')}</tbody></table></div>
+    </div>`;
+  },
+  m(p, el) {
+    const spread = () => { const b = Q['BZ=F']?.price, w = Q['CL=F']?.price; const s = $('.spread', el); if (s) s.innerHTML = ok(b) && ok(w) ? `<b>${nf(b - w, 2)}</b>` : '…'; };
+    spread();
+    let n = 0;
+    p.tick = () => { spread(); if (++n % 3 === 0) $$('td.name', el).forEach(td => { const tr = td.closest('tr'); const y = tr?.dataset.cmd?.split(' ')[0]; if (y && Q[y]?.name) td.textContent = Q[y].name; }); };
+    // futures curves
+    const wti = futSyms('CL'), brent = futSyms('BZ');
+    api('quotes?symbols=' + encodeURIComponent([...wti, ...brent].map(x => x.sym).join(','))).then(qs => {
+      if (!p.alive(el)) return;
+      const fresh = q => q && ok(q.price) && q.time && Date.now() / 1000 - q.time < 10 * 86400;
+      const months = wti.map((w, i) => ({ label: w.label, w: fresh(qs[w.sym]) ? qs[w.sym].price : null, b: fresh(qs[brent[i].sym]) ? qs[brent[i].sym].price : null })).filter(m => m.w != null || m.b != null);
+      if (!months.length) { $('.fc', el).parentElement.innerHTML = '<div class="empty">No futures curve data available.</div>'; return; }
+      mountChart($('.fc', el), { x: months.map(m => m.label), s: [{ n: 'WTI', d: months.map(m => m.w), c: COLORS[0], w: 2 }, { n: 'Brent', d: months.map(m => m.b), c: COLORS[1], w: 2 }], dots: true, yf: v => nf(v, 2) });
+      const wv = months.map(m => m.w).filter(ok);
+      if (wv.length > 6) {
+        const sp = wv[0] - wv[6];
+        $('.curvestat', el).innerHTML = `WTI M1–M7: <span class="${cls(sp)}">${sgn(sp, 2)}</span> → ${sp > 0 ? 'backwardation (tight prompt supply)' : 'contango (ample prompt supply)'}`;
+      }
+    }).catch(e => p.alive(el) && fail(el, e, '.fc'));
+    // EIA inventories
+    getCaps().then(c => {
+      if (!p.alive(el)) return;
+      if (!c.eia) {
+        $('.eia', el).innerHTML = `<div class="dim" style="white-space:normal">Weekly US crude inventories need a free EIA API key. You get it instantly at <a class="blu" href="https://www.eia.gov/opendata/register.php" target="_blank" rel="noopener noreferrer">eia.gov/opendata</a>. The inventories covered are the Strategic Petroleum Reserve, commercial crude, Cushing, gasoline and distillates. Set the key as <span class="amb">EIA_API_KEY</span> in Vercel (Project → Settings → Environment Variables) or in a local <span class="amb">.env</span> file.</div>`;
+        return;
+      }
+      return api('eia').then(d => {
+        if (!p.alive(el)) return;
+        const rows = d.series.map(s => {
+          const a = s.data, last = a[a.length - 1], prev = a[a.length - 2], yr = a[a.length - 53];
+          return `<tr><td class="l amb">${esc(s.name)}</td><td>${last ? nf(last.v / 1000, 1) : '—'}</td><td class="${cls(last && prev ? last.v - prev.v : 0)}">${last && prev ? sgn((last.v - prev.v) / 1000, 2) : '—'}</td><td class="${cls(last && yr ? last.v - yr.v : 0)}">${last && yr ? sgn((last.v - yr.v) / 1000, 1) : '—'}</td><td class="dim">${last ? last.d : ''}</td></tr>`;
+        }).join('');
+        $('.eia', el).innerHTML = `<div class="cols"><div><table><thead><tr><th class="l">Inventory</th><th>Million bbl</th><th>Week Δ</th><th>1Y Δ</th><th>Week ending</th></tr></thead><tbody>${rows}</tbody></table><div class="dim" style="margin-top:4px">Source: ${esc(d.src)}</div></div><div class="chartwrap" style="min-height:190px"><canvas class="chart inv"></canvas></div></div>`;
+        const spr = d.series.find(s => s.id === 'WCSSTUS1'), com = d.series.find(s => s.id === 'WCESTUS1');
+        if (!spr || !com) return;
+        const dates = spr.data.map(x => x.d);
+        const cm = Object.fromEntries(com.data.map(x => [x.d, x.v]));
+        mountChart($('.inv', el), { x: dates.map(x => x.slice(5) + '/' + x.slice(2, 4)), s: [{ n: 'SPR', d: spr.data.map(x => x.v / 1000), c: COLORS[0], w: 1.8 }, { n: 'Commercial', d: dates.map(x => cm[x] != null ? cm[x] / 1000 : null), c: COLORS[1], w: 1.4 }], yf: v => nf(v, 0) + 'M' });
+      });
+    }).catch(e => p.alive(el) && fail(el, e, '.eia'));
+  },
+};
+
+/* =====================================================================
    Panels
    ===================================================================== */
 const PANELS = [];
@@ -1464,6 +1949,7 @@ class Panel {
     const { fn, sec, arg } = this.cur;
     const F = FN[fn];
     const top = this.body.scrollTop;
+    if (this.cleanup) { try { this.cleanup(); } catch (e) { console.error(e); } this.cleanup = null; }
     this.seq++; this.syms = []; this.actions = null; this.tick = null; this.title = null;
     const html = F.r(this, sec, arg);
     this.body.innerHTML = html;
@@ -1489,6 +1975,7 @@ class Panel {
     }
     const t = s.split(/\s+/);
     if (t[0] === 'MENU' || t[0] === 'BACK') return this.back();
+    if (t[0] === 'SATOPEN') return openSat(this, +t[1]);
     if (t[0] === 'BUY' || t[0] === 'SELL') {
       const qi = t.findIndex((x, i) => i > 0 && /^\d+$/.test(x));
       const qty = qi > 0 ? +t[qi] : 0;
@@ -1511,6 +1998,7 @@ class Panel {
     else if (t.length > 1 && FN[t[0]]) { fn = t[0]; rest = t.slice(1); }
     if (fn === 'COMP') return this.go('COMP', null, { list: [resolve(rest) || this.cur?.sec || '^GSPC', '^GSPC'].filter((v, i, a) => a.indexOf(v) === i), rg: '1Y' });
     if (fn && !FN[fn].r) return this.msg(FN[fn].d);
+    if (fn && !FN[fn].sec) return this.go(fn, null, rest.join(' ') || null);
     let sec = rest.length ? resolve(rest) : null;
     if (rest.length && !sec) return this.go('SECF', null, rest.join(' '));
     if (fn) {
@@ -1601,7 +2089,7 @@ function setLayout(l) {
 /* =====================================================================
    Chrome: clocks, keys, tape, global keyboard
    ===================================================================== */
-const CLOCKS = [['NY', 'America/New_York'], ['LDN', 'Europe/London'], ['FRA', 'Europe/Berlin'], ['HK', 'Asia/Hong_Kong'], ['TYO', 'Asia/Tokyo'], ['SYD', 'Australia/Sydney']];
+const CLOCKS = [['NY', 'America/New_York'], ['LDN', 'Europe/London'], ['HK', 'Asia/Hong_Kong'], ['TYO', 'Asia/Tokyo']];
 // Regular trading sessions (local exchange time); holidays are not modelled.
 const MKTS = [['NYSE', 'America/New_York', 570, 960, 240, 1200], ['LSE', 'Europe/London', 480, 990], ['XETRA', 'Europe/Berlin', 540, 1050], ['HKEX', 'Asia/Hong_Kong', 570, 960], ['TSE', 'Asia/Tokyo', 540, 930]];
 function mktState(tz, open, close, pre, post) {
@@ -1633,7 +2121,7 @@ function pressKey(label) {
   p.inp.value = p.inp.value.trim() + ' ' + yk + ' ';
   p.inp.focus();
 }
-const LAUNCH = ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'CRYP', 'GC', 'EQS', 'TOP', 'W', 'PORT', 'HELP'];
+const LAUNCH = ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'GC', 'OIL', 'BMAP', 'FLT', 'SHIP', 'SAT', 'TOP', 'PORT', 'HELP'];
 function buildChrome() {
   $('#launch').innerHTML = LAUNCH.map(f => `<button data-f="${f}" title="${esc(FN[f].d)}">${f}</button>`).join('');
   $('#launch').onclick = e => { const b = e.target.closest('[data-f]'); if (b) PANELS[active].run(b.dataset.f); };

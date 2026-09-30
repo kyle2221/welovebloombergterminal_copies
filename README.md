@@ -20,6 +20,19 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | Income statement / cash flow / balance sheet | Yahoo Finance fundamentals time series |
 | US yield curve | U.S. Treasury daily par yield curve |
 | Top news | Yahoo Finance, CNBC, MarketWatch, Federal Reserve and SEC RSS feeds |
+| Live flights (ADS-B) | adsb.lol, falling back to airplanes.live, then OpenSky Network |
+| Live ships & tankers (AIS) | aisstream.io (global, free key) or Fintraffic Digitraffic (Baltic, no key) |
+| Military sites | OpenStreetMap (`military=*` tags) via the Overpass API |
+| Satellite imagery | Esri World Imagery (high-res), NASA GIBS MODIS daily & VIIRS night lights |
+| US crude, SPR & Cushing inventories | EIA API (free key) |
+| Oil futures curves | Yahoo Finance (NYMEX WTI & Brent contracts) |
+
+### Optional API keys
+
+Two free keys unlock extra data. Put them in a `.env` file for local use (see `.env.example`), or add them as Vercel environment variables:
+
+- `AISSTREAM_API_KEY` from [aisstream.io](https://aisstream.io) turns on worldwide ship tracking. Without it, ships are limited to the Baltic Sea.
+- `EIA_API_KEY` from [eia.gov/opendata](https://www.eia.gov/opendata/register.php) turns on the weekly US crude, SPR, Cushing, gasoline and distillate inventories in `OIL`.
 
 ### Deploy on Vercel
 
@@ -63,6 +76,10 @@ N FED                   news search
 | `ANR` | Analyst consensus, targets, rating changes |
 | `DVD` | Dividend and split history |
 | `COMP` | Normalized multi-security return chart |
+| `BMAP` | World map with toggleable layers: flights, ships, chokepoints and lanes, energy sites, military sites; dark, satellite, NASA daily or night-lights base maps |
+| `FLT`, `SHIP`, `MIL` | The map preset for live flights, live ships and tankers (with a tanker/cargo filter), or military sites. Add a region: `SHIP HORMUZ`, `FLT LONDON` |
+| `SAT` | Satellite imagery watchlist: mall and factory parking lots, aircraft storage, tank farms, ports |
+| `OIL` | Oil monitor: WTI/Brent futures curves, US inventories and SPR, proved reserves, chokepoints, energy stocks |
 | `W` | Watchlist |
 | `PORT` | Paper portfolio: P&L, positions, blotter ($1M starting cash) |
 | `SECF`, `HELP`, `MENU` | Search, function directory, back |
