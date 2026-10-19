@@ -335,6 +335,7 @@ table.fa td:first-child{white-space:nowrap}
   <div id="tape"><div id="tapeInner"></div></div>
 </footer>
 
+<script src="talk.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -1544,6 +1545,34 @@ function wordCloud(words) {
 }
 const srcNote = d => `<div class="dim" style="margin-top:6px">Source: ${esc(d.src || 'Reddit')}${d.note ? ` <span title="${esc(d.note)}">(Reddit's API blocks cloud servers; add REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET for upvote counts)</span>` : ''}.</div>`;
 
+// Reddit's JSON is usually readable straight from the viewer's browser (with upvote counts), even when it
+// blocks the data server; these return null when it isn't, and the server's RSS-based data is used instead.
+const RD_LIVE = {};
+async function redditLive(path) {
+  const hit = RD_LIVE[path];
+  if (hit && Date.now() - hit.t < 60e3) return hit.v;
+  try {
+    const r = await fetch('https://www.reddit.com' + path, { signal: AbortSignal.timeout(8000), credentials: 'omit' });
+    if (!r.ok || !(r.headers.get('content-type') || '').includes('json')) return null;
+    const v = await r.json();
+    RD_LIVE[path] = { t: Date.now(), v };
+    return v;
+  } catch { return null; }
+}
+const rdMap = d => ({ id: d.id, sub: d.subreddit, title: d.title || '', flair: d.link_flair_text || '', score: d.score ?? null, comments: d.num_comments ?? null, t: d.created_utc || 0,
+  author: d.author || '', link: 'https://www.reddit.com' + (d.permalink || ''), text: (d.selftext || '').slice(0, 700), sticky: !!d.stickied, tickers: window.Talk ? Talk.tickersIn(`${d.title} ${d.selftext || ''}`) : [] });
+async function redditLiveListing(path) {
+  const j = await redditLive(path);
+  const posts = (j?.data?.children || []).filter(c => c.kind === 't3').map(c => rdMap(c.data));
+  return posts.length ? posts : null;
+}
+async function redditLiveComments(sub, id, sort) {
+  const j = await redditLive(`/r/${sub}/comments/${id}.json?sort=${sort}&limit=300&depth=1&raw_json=1`);
+  const out = (j?.[1]?.data?.children || []).filter(c => c.kind === 't1' && c.data.body && !/^\[(deleted|removed)\]$/.test(c.data.body))
+    .map(c => ({ body: c.data.body.slice(0, 500), score: c.data.score, author: c.data.author, t: c.data.created_utc }));
+  return out.length ? out : null;
+}
+
 FN.WSB = {
   d: 'WallStreetBets: what r/wallstreetbets is talking about — tickers, sentiment, daily thread, hot posts', cat: 'news',
   r(p) {
@@ -1557,11 +1586,9 @@ FN.WSB = {
   },
   m(p, el) {
     let lastErr = false;
-    const load = () => cachedApi('wsb', 110e3, 'wsb').then(d => {
+    const st = p.cur.arg && typeof p.cur.arg === 'object' ? p.cur.arg : (p.cur.arg = { sort: 'top' });
+    const render = d => {
       if (!p.alive(el)) return;
-      // Reddit sometimes rate-limits the server; show what loaded and retry sooner
-      lastErr = !!d.err;
-      if (d.err) delete cache.wsb;
       const busy = `<div class="yel">Reddit is rate-limiting the data server right now — retrying in 30s.</div><div class="dim" style="font-size:10px">${esc(d.err || '')}</div>`;
       subscribe(p, [...d.tickers.slice(0, 25).map(x => x.sym), ...d.ape.slice(0, 20).map(x => x.sym)]);
       $('.w-men', el).innerHTML = d.err && !d.tickers.length ? busy : rdMentions(d.tickers);
@@ -1571,16 +1598,40 @@ FN.WSB = {
       $('.w-trs', el).innerHTML = d.tradestie.length ? `<table><thead><tr><th class="l">Ticker</th><th>Comments</th><th class="l">Sentiment</th><th>Score</th></tr></thead><tbody>` +
         d.tradestie.slice(0, 25).map(r => `<tr class="clk" data-cmd="${esc(r.sym)} DES"><td class="l amb">${esc(r.sym)}</td><td>${r.comments}</td><td class="l ${r.sentiment === 'Bullish' ? 'up' : r.sentiment === 'Bearish' ? 'dn' : 'dim'}">${esc(r.sentiment)}</td><td class="${cls(r.score)}">${ok(r.score) ? nf(r.score, 3) : '—'}</td></tr>`).join('') + '</tbody></table>'
         : `<div class="dim">Unavailable${d.tradestieErr ? ': ' + esc(d.tradestieErr) : ''}</div>`;
-      $('.w-cloud', el).innerHTML = wordCloud(d.words) + '<div class="dim" style="margin-top:4px">Most-used words in today\'s hot posts and daily-thread comments, weighted by upvotes where available. Click a word to search the news.</div>';
+      $('.w-cloud', el).innerHTML = d.err && !d.words.length ? busy : wordCloud(d.words) + '<div class="dim" style="margin-top:4px">Most-used words in today\'s hot posts and daily-thread comments, weighted by upvotes where available. Click a word to search the news.</div>';
       const dl = d.daily;
-      $('.w-daily', el).innerHTML = !dl ? '<div class="dim">No daily thread pinned right now.</div>'
-        : `<div style="margin-bottom:6px"><a class="amb" href="${esc(safeUrl(dl.link))}" target="_blank" rel="noopener noreferrer">${esc(dl.title)} ↗</a></div>` + (dl.err ? `<div class="dim">Comments unavailable: ${esc(dl.err)}</div>`
+      const sortBtns = dl && dl.live ? `<span style="float:right">${['top', 'new'].map(k => `<button class="tab ${st.sort === k ? 'on' : ''}" data-dsort="${k}">${k.toUpperCase()}</button>`).join(' ')}</span>` : '';
+      $('.w-daily', el).innerHTML = !dl ? (d.err ? busy : '<div class="dim">No daily thread pinned right now.</div>')
+        : `<div style="margin-bottom:6px">${sortBtns}<a class="amb" href="${esc(safeUrl(dl.link))}" target="_blank" rel="noopener noreferrer">${esc(dl.title)} ↗</a>${dl.n != null ? ` <span class="dim">${big(dl.n)} comments</span>` : ''}</div>` + (dl.err ? `<div class="dim">Comments unavailable: ${esc(dl.err)}</div>`
           : `${dl.stream ? '<div class="dim" style="margin-bottom:6px">Thread comments are rate-limited right now, so these are the latest comments across r/wallstreetbets.</div>' : ''}${dl.tickers?.length ? `<div style="margin-bottom:6px"><span class="dim">Tickers in the ${dl.stream ? 'comments' : 'thread'}:</span> ${dl.tickers.slice(0, 15).map(x => `${tkChip(x.sym)}<span class="dim">×${x.n}</span>`).join(' ')}</div>` : ''}<div class="dlist">` +
-            dl.comments.slice(0, 80).map(c => `<div class="dcom"><span class="dim">${c.score != null ? '▲' + c.score + ' · ' : ''}${c.t ? ago(c.t) : ''} · u/${esc(c.author)}</span><div>${esc(c.body)}</div></div>`).join('') + '</div>');
+            dl.comments.slice(0, 120).map(c => `<div class="dcom"><span class="dim">${c.score != null ? '▲' + c.score + ' · ' : ''}${c.t ? ago(c.t) : ''} · u/${esc(c.author)}</span><div>${esc(c.body)}</div></div>`).join('') + '</div>');
+      $$('[data-dsort]', el).forEach(b => b.onclick = () => { st.sort = b.dataset.dsort; store.set('panel' + p.i, p.cur); upgrade(base); });
       $('.w-posts', el).innerHTML = d.err && !d.posts.length ? busy : rdPosts(d.posts.filter(x => !x.sticky), 40);
-      if (d.err && !d.words.length) $('.w-cloud', el).innerHTML = busy;
-      if (d.err && !d.daily) $('.w-daily', el).innerHTML = busy;
-      $('.w-src', el).innerHTML = srcNote(d) + '<div class="dim">Ticker mentions are counted from $CASHTAGS and known tickers; tone counts bullish (calls, moon, 🚀) vs bearish (puts, short, 🌈🐻) words. Not investment advice.</div>';
+      $('.w-src', el).innerHTML = (d.live ? '<div class="dim" style="margin-top:6px">Source: Reddit, read live by your browser (with upvote counts).</div>' : srcNote(d)) + '<div class="dim">Ticker mentions are counted from $CASHTAGS and known tickers; tone counts bullish (calls, moon, 🚀) vs bearish (puts, short, 🌈🐻) words. Not investment advice.</div>';
+    };
+    // Re-read posts and the daily thread straight from Reddit in this browser when it allows it
+    let base = null;
+    async function upgrade(d) {
+      if (!window.Talk) return;
+      Talk.addKnown(d.known);
+      const posts = await redditLiveListing('/r/wallstreetbets/hot.json?limit=100&raw_json=1');
+      if (!p.alive(el)) return;
+      const dt = (posts || d.posts).find(x => /daily discussion|moves tomorrow|weekend discussion/i.test(x.title));
+      const cm = dt ? await redditLiveComments('wallstreetbets', dt.id, st.sort) : null;
+      if (!p.alive(el) || (!posts && !cm)) return;
+      const ps = posts || d.posts;
+      const daily = cm ? { id: dt.id, title: dt.title, link: dt.link, n: dt.comments, live: true, comments: cm, tickers: Talk.mentions(cm).slice(0, 30) } : d.daily;
+      const all = [...ps, ...(daily?.comments || [])];
+      render({ ...d, err: null, live: true, posts: ps, daily, tickers: Talk.mentions(all).slice(0, 40), words: Talk.words(all, 50) });
+    }
+    const load = () => cachedApi('wsb', 110e3, 'wsb').then(d => {
+      if (!p.alive(el)) return;
+      // Reddit sometimes rate-limits the server; show what loaded and retry sooner
+      lastErr = !!d.err;
+      if (d.err) delete cache.wsb;
+      base = d;
+      render(d);
+      upgrade(d);
     }).catch(e => { if (p.alive(el)) $$('.spin', el).forEach(s => { s.outerHTML = `<div class="dn">${esc(e.message)}</div>`; }); });
     load();
     let n = 0; p.tick = () => { if (++n % (lastErr ? 6 : 24) === 0) load(); };
@@ -1615,15 +1666,26 @@ FN.REDDIT = {
     $('#rgo', el).onclick = search;
     $('#rq', el).onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') search(); };
     const path = st.q ? 'rsearch?q=' + encodeURIComponent(st.q) : `reddit?sub=${encodeURIComponent(st.sub)}&sort=${st.sort || 'hot'}${st.t ? '&t=' + st.t : ''}`;
-    const load = () => cachedApi('rd:' + path, 110e3, path).then(d => {
+    const render = d => {
       if (!p.alive(el)) return;
       const posts = st.q ? d.posts.map(x => ({ ...x, tickers: [] })) : d.posts;
       if (!st.q) subscribe(p, d.tickers.slice(0, 25).map(x => x.sym));
       $('.r-men', el).innerHTML = st.q ? `<div class="dim">${d.posts.length} recent posts mention “${esc(st.q)}” across r/wallstreetbets, r/stocks, r/investing, r/options, r/StockMarket and r/pennystocks.</div>` : rdMentions(d.tickers);
       $('.r-cloud', el).innerHTML = st.q ? '' : wordCloud(d.words);
       $('.r-posts', el).innerHTML = rdPosts(posts, 100);
-      $('.r-src', el).innerHTML = srcNote(d);
-    }).catch(e => { if (p.alive(el)) $$('.spin', el).forEach(s => { s.outerHTML = `<div class="dn">${esc(e.message)}</div>`; }); });
+      $('.r-src', el).innerHTML = d.live ? '<div class="dim" style="margin-top:6px">Source: Reddit, read live by your browser (with upvote counts).</div>' : srcNote(d);
+    };
+    const livePath = st.q ? `/r/wallstreetbets+stocks+investing+options+StockMarket+pennystocks/search.json?q=${encodeURIComponent(st.q)}&restrict_sr=1&sort=new&t=month&limit=50&raw_json=1`
+      : `/r/${st.sub}/${st.sort || 'hot'}.json?limit=100&raw_json=1${st.t ? '&t=' + st.t : ''}`;
+    const upgrade = async d => {
+      if (!window.Talk) return;
+      if (d) Talk.addKnown(d.known);
+      const posts = await redditLiveListing(livePath);
+      if (!posts || !p.alive(el)) return;
+      render({ live: true, posts, tickers: Talk.mentions(posts).slice(0, 40), words: Talk.words(posts) });
+    };
+    const load = () => cachedApi('rd:' + path, 110e3, path).then(d => { render(d); upgrade(d); })
+      .catch(e => { upgrade(null); if (p.alive(el)) $$('.spin', el).forEach(s => { s.outerHTML = `<div class="dn">${esc(e.message)}</div>`; }); });
     load();
     let n = 0; p.tick = () => { if (++n % 24 === 0) load(); };
   },

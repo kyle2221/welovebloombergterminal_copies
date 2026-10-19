@@ -22,7 +22,7 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | Earnings & revenue estimates, EPS trend and revisions, earnings history, SEC filings | Yahoo Finance analysis |
 | US yield curve | U.S. Treasury daily par yield curve |
 | Top news | RSS feeds from Yahoo Finance, CNBC, MarketWatch, WSJ, Bloomberg, FT, Seeking Alpha, Investing.com, Nasdaq, Benzinga, The Economist, CoinDesk, the Federal Reserve, SEC and ECB, plus Google News (which adds Reuters, AP, Barron's and hundreds of other publishers) |
-| Reddit | r/wallstreetbets and other finance subreddits: posts, daily-thread comments and search. Reddit's JSON API blocks cloud servers, so the RSS feeds are used unless you add a Reddit app key (then upvote and comment counts appear too) |
+| Reddit | r/wallstreetbets and other finance subreddits: posts, daily-thread comments and search. Your browser reads Reddit directly when Reddit allows it (with upvote and comment counts); otherwise the server's copy is used, which comes from Reddit's RSS feeds because Reddit's API blocks cloud servers (add a Reddit app key to get counts there too) |
 | Live flights (ADS-B) | adsb.lol, falling back to airplanes.live, then OpenSky Network |
 | Aircraft lookup, military & emergency traffic, business jets, cargo hubs | adsb.lol and airplanes.live; flight routes from the adsb.lol route database; photos from planespotters.net |
 | Live ships & tankers (AIS) | aisstream.io (global, free key) or Fintraffic Digitraffic (Baltic, no key) |
