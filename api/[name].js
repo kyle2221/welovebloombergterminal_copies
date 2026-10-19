@@ -13,7 +13,8 @@ module.exports = async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const name = (req.query && req.query.name) || url.pathname.split('/').pop();
   const { status, body } = await handle(name, url.searchParams);
-  const ttl = CDN_TTL[name] ?? 0;
+  // partial results (one source failed) are cached only briefly so the CDN doesn't keep serving the gap
+  const ttl = body && typeof body === 'object' && !Array.isArray(body) && body.err ? Math.min(10, CDN_TTL[name] ?? 0) : CDN_TTL[name] ?? 0;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', status === 200 && ttl ? `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 4}` : 'no-store');

@@ -1556,10 +1556,15 @@ FN.WSB = {
       <div class="w-src"></div></div>`;
   },
   m(p, el) {
+    let lastErr = false;
     const load = () => cachedApi('wsb', 110e3, 'wsb').then(d => {
       if (!p.alive(el)) return;
+      // Reddit sometimes rate-limits the server; show what loaded and retry sooner
+      lastErr = !!d.err;
+      if (d.err) delete cache.wsb;
+      const busy = `<div class="yel">Reddit is rate-limiting the data server right now — retrying in 30s.</div><div class="dim" style="font-size:10px">${esc(d.err || '')}</div>`;
       subscribe(p, [...d.tickers.slice(0, 25).map(x => x.sym), ...d.ape.slice(0, 20).map(x => x.sym)]);
-      $('.w-men', el).innerHTML = rdMentions(d.tickers);
+      $('.w-men', el).innerHTML = d.err && !d.tickers.length ? busy : rdMentions(d.tickers);
       $('.w-ape', el).innerHTML = d.ape.length ? `<table><thead><tr><th>#</th><th>Δ</th><th class="l">Ticker</th><th>Mentions</th><th>Δ 24h</th><th>Upvotes</th><th>%Chg</th></tr></thead><tbody>` +
         d.ape.slice(0, 25).map(r => { const dr = r.rank24 ? r.rank24 - r.rank : null, dm = r.mentions24 ? (r.mentions / r.mentions24 - 1) * 100 : null; return `<tr class="clk" data-cmd="${esc(r.sym)} DES"><td>${r.rank}</td><td class="${cls(dr)}">${dr ? (dr > 0 ? '▲' : '▼') + Math.abs(dr) : '—'}</td><td class="l amb" title="${esc(unent(r.name))}">${esc(r.sym)}</td><td>${nf(r.mentions, 0)}</td><td class="${cls(dm)}">${ok(dm) ? pc(dm, 0) : 'new'}</td><td>${big(r.upvotes)}</td><td>${L(r.sym, 'pct')}</td></tr>`; }).join('') + '</tbody></table>'
         : `<div class="dim">Unavailable${d.apeErr ? ': ' + esc(d.apeErr) : ''}</div>`;
@@ -1572,11 +1577,13 @@ FN.WSB = {
         : `<div style="margin-bottom:6px"><a class="amb" href="${esc(safeUrl(dl.link))}" target="_blank" rel="noopener noreferrer">${esc(dl.title)} ↗</a></div>` + (dl.err ? `<div class="dim">Comments unavailable: ${esc(dl.err)}</div>`
           : `${dl.tickers?.length ? `<div style="margin-bottom:6px"><span class="dim">Tickers in the thread:</span> ${dl.tickers.slice(0, 15).map(x => `${tkChip(x.sym)}<span class="dim">×${x.n}</span>`).join(' ')}</div>` : ''}<div class="dlist">` +
             dl.comments.slice(0, 80).map(c => `<div class="dcom"><span class="dim">${c.score != null ? '▲' + c.score + ' · ' : ''}${c.t ? ago(c.t) : ''} · u/${esc(c.author)}</span><div>${esc(c.body)}</div></div>`).join('') + '</div>');
-      $('.w-posts', el).innerHTML = rdPosts(d.posts.filter(x => !x.sticky), 40);
+      $('.w-posts', el).innerHTML = d.err && !d.posts.length ? busy : rdPosts(d.posts.filter(x => !x.sticky), 40);
+      if (d.err && !d.words.length) $('.w-cloud', el).innerHTML = busy;
+      if (d.err && !d.daily) $('.w-daily', el).innerHTML = busy;
       $('.w-src', el).innerHTML = srcNote(d) + '<div class="dim">Ticker mentions are counted from $CASHTAGS and known tickers; tone counts bullish (calls, moon, 🚀) vs bearish (puts, short, 🌈🐻) words. Not investment advice.</div>';
     }).catch(e => { if (p.alive(el)) $$('.spin', el).forEach(s => { s.outerHTML = `<div class="dn">${esc(e.message)}</div>`; }); });
     load();
-    let n = 0; p.tick = () => { if (++n % 24 === 0) load(); };
+    let n = 0; p.tick = () => { if (++n % (lastErr ? 6 : 24) === 0) load(); };
   },
 };
 
