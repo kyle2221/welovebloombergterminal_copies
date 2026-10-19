@@ -205,6 +205,31 @@ label.chk input{accent-color:var(--amber);margin:0}
 .hbar .b{height:10px;background:linear-gradient(90deg,var(--amber2),var(--amber));border-radius:2px}
 .hbar .v{color:var(--dim);font-size:11px}
 
+/* ---------- edge widgets ---------- */
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.kpi .big{margin:2px 0}
+.spark{position:relative;height:44px;margin-top:4px}
+.spark canvas.chart{cursor:default}
+.predgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.pred{display:block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;transition:border-color .15s}
+.pred:hover{border-color:var(--amber2)}
+.pred .pt{font-weight:500;margin-bottom:6px;white-space:normal;line-height:1.35}
+.src{display:inline-block;font-size:9px;font-weight:700;padding:0 5px;border-radius:3px;background:rgba(90,169,255,.15);color:var(--blue);vertical-align:1px}
+.src.k{background:rgba(33,208,122,.15);color:var(--up)}
+.po{display:flex;align-items:center;gap:8px;margin:3px 0}
+.po .pn{flex:0 0 42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c9ced8}
+.po .pb{flex:1;height:8px;background:#1b2029;border-radius:4px;overflow:hidden}
+.po .pb i{display:block;height:100%;background:linear-gradient(90deg,var(--amber2),var(--amber))}
+.po b{width:44px;text-align:right}
+.pv{margin-top:4px;font-size:10px}
+.pr1{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid #12151b}
+.pr1:hover{background:var(--hover)}
+.fgbar{position:relative;height:8px;border-radius:4px;margin:8px 0 2px;background:linear-gradient(90deg,#ff4d5e,#ff9f43,#ffd84d,#8fd36a,#21d07a)}
+.fgbar i{position:absolute;top:-4px;width:4px;height:16px;margin-left:-2px;background:#fff;border-radius:2px;box-shadow:0 0 6px #000}
+.fgl{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:6px}
+
 @media (max-width:1300px){.launch{display:none}}
 @media (max-width:1050px){#mkts{display:none}}
 @media (max-width:900px){
@@ -516,7 +541,7 @@ function drawChart(cv) {
   c.font = '11px ' + getComputedStyle(document.body).fontFamily;
   const N = cfg.x.length;
   if (!N) { c.fillStyle = '#8b93a1'; c.fillText('No data', 12, 20); return; }
-  const pl = 6, pr = 66, pt = 8, pb = 20;
+  const mini = !!cfg.mini, pl = mini ? 2 : 6, pr = mini ? 2 : 66, pt = mini ? 4 : 8, pb = mini ? 2 : 20;
   const vh = cfg.v ? Math.round((H - pt - pb) * 0.18) : 0;
   const ph = H - pt - pb - vh - (vh ? 4 : 0), pw = W - pl - pr;
   let mn = Infinity, mx = -Infinity;
@@ -535,11 +560,11 @@ function drawChart(cv) {
   for (const t of niceTicks(mn, mx, Math.max(3, Math.floor(ph / 45)))) {
     const y = Math.round(Y(t)) + .5;
     c.strokeStyle = '#161a22'; c.beginPath(); c.moveTo(pl, y); c.lineTo(pl + pw, y); c.stroke();
-    c.fillStyle = '#8b93a1'; c.fillText(yf(t), pl + pw + 6, y);
+    if (!mini) { c.fillStyle = '#8b93a1'; c.fillText(yf(t), pl + pw + 6, y); }
   }
   // x labels
   c.textAlign = 'center'; c.textBaseline = 'top';
-  const nl = Math.max(2, Math.min(N, Math.floor(pw / 95)));
+  const nl = mini ? 0 : Math.max(2, Math.min(N, Math.floor(pw / 95)));
   for (let k = 0; k < nl; k++) {
     const i = Math.round(k * (N - 1) / (nl - 1));
     const x = Math.round(X(i)) + .5;
@@ -599,6 +624,18 @@ function drawChart(cv) {
       c.fillStyle = g; c.fill();
     }
     if (cfg.dots) s.d.forEach((v, i) => { if (ok(v)) { c.fillStyle = s.c; c.beginPath(); c.arc(X(i), Y(v), 3, 0, 7); c.fill(); } });
+  });
+  // event markers (e.g. insider buys/sells): {i, up, c}
+  (cfg.marks || []).forEach(mk => {
+    const v = cfg.s[0].d[mk.i];
+    if (!ok(v)) return;
+    const x = X(mk.i), y = Y(v) + (mk.up ? 12 : -12);
+    c.fillStyle = mk.c || (mk.up ? '#21d07a' : '#ff4d5e');
+    c.strokeStyle = '#000'; c.lineWidth = 1;
+    c.beginPath();
+    if (mk.up) { c.moveTo(x, y - 6); c.lineTo(x - 5, y + 3); c.lineTo(x + 5, y + 3); }
+    else { c.moveTo(x, y + 6); c.lineTo(x - 5, y - 3); c.lineTo(x + 5, y - 3); }
+    c.closePath(); c.fill(); c.stroke();
   });
   // last value tags
   c.textAlign = 'left'; c.textBaseline = 'middle';
@@ -710,7 +747,9 @@ const HELP_GROUPS = [
   ['Market Monitors', ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'CRYP', 'GC', 'EQS']],
   ['News', ['TOP', 'N', 'CN']],
   ['Security Analysis', ['DES', 'GP', 'GIP', 'HP', 'Q', 'FA', 'ANR', 'DVD', 'COMP']],
-  ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'SHIP', 'SAT', 'OIL', 'MIL']],
+  ['Edge: Insiders, Flow & Positioning', ['EDGE', 'INSB', 'INSD', 'CONG', 'HDS', 'OMON', 'UOA', 'SI', 'SHRT']],
+  ['Macro, Events & Sentiment', ['WIRP', 'ECST', 'PRED', 'SENT', 'ECO', 'EARN']],
+  ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'SHIP', 'TRACK', 'TANK', 'SAT', 'OIL', 'MIL']],
   ['Portfolio & Lists', ['W', 'PORT', 'BUY', 'SELL']],
   ['Navigation', ['SECF', 'MENU', 'HELP']],
 ];
@@ -1037,7 +1076,7 @@ FN.CN = {
 };
 
 // ---------------------------------------------------------------- DES
-const SEC_MENU = [['GP', 'Price Graph'], ['GIP', 'Intraday Graph'], ['HP', 'Historical Prices'], ['Q', 'Quote'], ['FA', 'Financial Analysis'], ['ANR', 'Analyst Recs'], ['DVD', 'Dividends'], ['CN', 'Company News'], ['COMP', 'Comparative Returns']];
+const SEC_MENU = [['GP', 'Price Graph'], ['GIP', 'Intraday Graph'], ['HP', 'Historical Prices'], ['Q', 'Quote'], ['FA', 'Financial Analysis'], ['ANR', 'Analyst Recs'], ['INSD', 'Insider Trades'], ['OMON', 'Options Monitor'], ['HDS', 'Holders'], ['SI', 'Short Interest'], ['DVD', 'Dividends'], ['CN', 'Company News'], ['COMP', 'Comparative Returns']];
 async function getSummary(y) { return cachedApi('sum:' + y, 300e3, 'summary?symbol=' + encodeURIComponent(y)); }
 const kv = rows => `<div class="kv">${rows.filter(Boolean).map(([k, v]) => `<span class="k">${k}</span><span class="v">${v}</span>`).join('')}</div>`;
 FN.DES = {
@@ -1721,8 +1760,15 @@ async function initMap(p, el, st) {
     (data.ships || []).filter(shipFilter).forEach(s => {
       const [cn, cc] = shipCat(s.type);
       const m = L.circleMarker([s.lat, s.lon], { radius: s.type >= 80 && s.type <= 89 ? 5 : 4, color: '#000', weight: 0.8, fillColor: cc, fillOpacity: 0.9 });
-      tip(m, `<b>${esc(s.name || 'MMSI ' + s.mmsi)}</b><br>${cn}${s.dest ? ' → ' + esc(s.dest) : ''}<br>${ok(s.sog) ? nf(s.sog, 1) + ' kn' : '—'} · ${ok(s.cog) ? nf(s.cog, 0) + '°' : ''}${ok(s.draught) && s.draught ? ` · draught ${nf(s.draught, 1)} m` : ''}<br><span class="dim">${SHIP_NAV[s.nav] || ''} · MMSI ${s.mmsi}</span>`);
+      tip(m, `<b>${esc(s.name || 'MMSI ' + s.mmsi)}</b><br>${cn}${s.dest ? ' → ' + esc(s.dest) : ''}<br>${ok(s.sog) ? nf(s.sog, 1) + ' kn' : '—'} · ${ok(s.cog) ? nf(s.cog, 0) + '°' : ''}${ok(s.draught) && s.draught ? ` · draught ${nf(s.draught, 1)} m` : ''}<br><span class="dim">${SHIP_NAV[s.nav] || ''} · MMSI ${s.mmsi} · ${esc(flagOf(s.mmsi))}</span><br><span class="yel">click to track</span>`);
+      m.on('click', () => { trackVessel(s); p.msg(`Tracking ${s.name || s.mmsi} — open TRACK to follow it`, true); renderShips(); });
       m.addTo(G.ships);
+    });
+    recordTrail(data.ships || []); saveTrk();
+    TRK.forEach(t => {
+      const h = TRK_HIST[t.mmsi] || [];
+      if (h.length > 1) L.polyline(h.map(x => [x[1], x[2]]), { color: '#ffd84d', weight: 2, opacity: 0.9 }).addTo(G.ships);
+      if (t.last && t.last.lat != null) L.circleMarker([t.last.lat, t.last.lon], { radius: 9, color: '#ffd84d', weight: 2, fill: false }).bindTooltip(`<b>${esc(t.name)}</b> (tracked)`).addTo(G.ships);
     });
   }
   async function loadBases() {
@@ -1904,11 +1950,631 @@ FN.OIL = {
 };
 
 /* =====================================================================
+   Edge: insiders, congress, options flow, short volume, Fed path, macro,
+   prediction markets, sentiment, calendars, vessel tracking
+   ===================================================================== */
+const unent = s => String(s ?? '').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+const ago2 = d => { const t = Date.parse(d); if (!t) return d || ''; const days = Math.floor((Date.now() - t) / 864e5); return days <= 0 ? 'today' : days === 1 ? '1d ago' : days + 'd ago'; };
+const money = v => ok(v) ? (v < 0 ? '-$' : '$') + big(Math.abs(v)) : '—';
+const pct0 = v => ok(v) ? nf(v, 2) + '%' : '—';
+const symCell = (s, fn = 'DES') => `<a class="amb" data-cmd="${esc(s)} ${fn}" style="cursor:pointer">${esc(s)}</a>`;
+const box = (title, inner, cls = '') => `<div class="box ${cls}"><div class="t">${title}</div>${inner}</div>`;
+function subscribe(p, syms) { p.syms = [...new Set([...(p.syms || []), ...syms.filter(Boolean)])].slice(0, 180); requestPoll(); }
+const sinceCell = (sym, px) => { const q = Q[sym]; if (!q || !ok(px) || !px) return '<td class="dim">…</td>'; const ch = (q.price / px - 1) * 100; return `<td class="${cls(ch)}">${pc(ch, 1)}</td>`; };
+
+// ---------------------------------------------------------------- INSD: company insider trades
+function yInsiderTx(h) {
+  return (h.insiderTransactions?.transactions || []).map(t => {
+    const text = t.transactionText || '';
+    let code = 'A', label = 'Grant / exercise';
+    if (/^Sale/i.test(text)) { code = 'S'; label = 'Sale'; }
+    else if (/^(Purchase|Buy)/i.test(text)) { code = 'P'; label = 'Purchase'; }
+    else if (/Gift/i.test(text)) { code = 'G'; label = 'Gift'; }
+    else if (/Exercise|Conversion/i.test(text)) { code = 'M'; label = 'Option exercise'; }
+    const pm = text.match(/price\s+([\d.,]+)(?:\s*-\s*([\d.,]+))?/i);
+    const p1 = pm ? Number(pm[1].replace(/,/g, '')) : null, p2 = pm && pm[2] ? Number(pm[2].replace(/,/g, '')) : p1;
+    const shares = rv(t.shares), value = rv(t.value);
+    return { date: rv(t.startDate), name: t.filerName, role: t.filerRelation, code, label, text, shares, value, price: p1 ? (p1 + p2) / 2 : (value && shares ? value / shares : null), own: t.ownership };
+  });
+}
+const CODE_CLS = { P: 'up', S: 'dn', G: 'dim', M: 'blu', A: 'dim' };
+FN.INSD = {
+  d: 'Insider trading (SEC Form 4) for a company', cat: 'edge', sec: true,
+  r(p, y, arg) {
+    p.syms = [y];
+    const f = ['ALL', 'BUYS', 'SELLS', 'MARKET'].includes(arg) ? arg : 'MARKET';
+    return `<div class="bar">${[['MARKET', 'OPEN-MARKET BUYS & SELLS'], ['BUYS', 'BUYS'], ['SELLS', 'SELLS'], ['ALL', 'ALL TRANSACTIONS']].map(([k, l]) => `<button class="tab ${k === f ? 'on' : ''}" data-go="INSD|${k}">${l}</button>`).join('')}
+      <span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}
+      <a class="btn" style="margin-left:auto" href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(y)}&type=4&dateb=&owner=include&count=40" target="_blank" rel="noopener noreferrer">SEC FILINGS ↗</a></div>
+      <div class="pad res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const f = ['ALL', 'BUYS', 'SELLS', 'MARKET'].includes(arg) ? arg : 'MARKET';
+    Promise.all([cachedApi('hold:' + y, 600e3, 'holders?symbol=' + encodeURIComponent(y)), api(`chart?symbol=${encodeURIComponent(y)}&range=1y&interval=1d`).catch(() => null)]).then(([h, c]) => {
+      if (!p.alive(el)) return;
+      const tx = yInsiderTx(h);
+      const yearAgo = Date.now() / 1000 - 365 * 864e2;
+      const yr = tx.filter(t => t.date >= yearAgo);
+      const buys = yr.filter(t => t.code === 'P'), sells = yr.filter(t => t.code === 'S');
+      const sum = a => a.reduce((s, t) => s + (t.value || 0), 0);
+      const np = h.netSharePurchaseActivity || {};
+      const ratio = sells.length ? buys.length / sells.length : null;
+      const signal = buys.length >= 2 && new Set(buys.map(b => b.name)).size >= 2 ? '<span class="up">CLUSTER BUYING — multiple insiders bought in the last 12 months</span>'
+        : buys.length ? '<span class="up">Insider buying present</span>' : sells.length ? '<span class="dim">Only selling (often routine 10b5-1 plans and tax sales)</span>' : '<span class="dim">No open-market activity in 12 months</span>';
+      let hh = `<div class="cols">
+        ${box('12-Month Open-Market Activity', kv([
+          ['Purchases', `<span class="up">${buys.length}</span> · ${money(sum(buys))}`], ['Sales', `<span class="dn">${sells.length}</span> · ${money(sum(sells))}`],
+          ['Net', `<span class="${cls(sum(buys) - sum(sells))}">${money(sum(buys) - sum(sells))}</span>`], ['Buy/Sell count ratio', ok(ratio) ? nf(ratio, 2) : '—'],
+          ['Signal', signal],
+        ]))}
+        ${box('6-Month Net Share Purchase (Yahoo/SEC)', kv([
+          ['Buy transactions', `${rv(np.buyInfoCount) ?? '—'} · ${big(rv(np.buyInfoShares))} sh`], ['Sell transactions', `${rv(np.sellInfoCount) ?? '—'} · ${big(rv(np.sellInfoShares))} sh`],
+          ['Net shares', `<span class="${cls(rv(np.netInfoShares))}">${big(rv(np.netInfoShares))}</span>`], ['% of insider holdings', ok(rv(np.netPercentInsiderShares)) ? pc(rv(np.netPercentInsiderShares) * 100) : '—'],
+          ['Institutions net buying', ok(rv(np.netInstBuyingPercent)) ? `<span class="${cls(rv(np.netInstBuyingPercent))}">${pc(rv(np.netInstBuyingPercent) * 100)}</span>` : '—'],
+        ]))}
+        ${box('Price With Insider Trades (1Y)', '<div class="chartwrap" style="min-height:190px"><canvas class="chart"></canvas></div><div class="legend"><span class="up">▲ purchase</span><span class="dn">▼ sale</span></div>')}
+      </div>`;
+      const show = tx.filter(t => f === 'ALL' || (f === 'BUYS' && t.code === 'P') || (f === 'SELLS' && t.code === 'S') || (f === 'MARKET' && (t.code === 'P' || t.code === 'S')));
+      hh += `<div class="h" style="margin:12px 0 6px">TRANSACTIONS (${show.length})</div>` + (show.length ? `<table><thead><tr><th class="l">Date</th><th class="l">Insider</th><th class="l">Relation</th><th class="l">Type</th><th>Shares</th><th>Price</th><th>Value</th><th>Since</th><th class="l">D/I</th><th class="l">Detail</th></tr></thead><tbody>` +
+        show.map(t => `<tr><td class="l dim">${t.date ? new Date(t.date * 1000).toISOString().slice(0, 10) : ''}</td><td class="l amb">${esc(t.name)}</td><td class="l">${esc(t.role)}</td><td class="l ${CODE_CLS[t.code] || ''}">${esc(t.label)}</td><td>${big(t.shares)}</td><td>${ok(t.price) ? nf(t.price, 2) : '—'}</td><td class="${CODE_CLS[t.code] || ''}">${t.value ? money(t.value) : '—'}</td>${t.price ? sinceCell(y, t.price) : '<td></td>'}<td class="l dim">${t.own === 'I' ? 'Indirect' : 'Direct'}</td><td class="l dim name">${esc(t.text)}</td></tr>`).join('') + '</tbody></table>'
+        : '<div class="empty">No transactions match this filter.</div>');
+      const ih = h.insiderHolders?.holders || [];
+      if (ih.length) hh += `<div class="h" style="margin:12px 0 6px">INSIDER HOLDINGS</div><table><thead><tr><th class="l">Insider</th><th class="l">Relation</th><th>Shares held</th><th>Value</th><th class="l">Latest transaction</th><th class="l">Date</th></tr></thead><tbody>` +
+        ih.map(x => `<tr><td class="l amb">${esc(x.name)}</td><td class="l">${esc(x.relation)}</td><td>${big(rv(x.positionDirect))}</td><td>${Q[y] && rv(x.positionDirect) ? money(Q[y].price * rv(x.positionDirect)) : '—'}</td><td class="l dim">${esc(x.transactionDescription)}</td><td class="l dim">${esc(x.latestTransDate?.fmt || '')}</td></tr>`).join('') + '</tbody></table>';
+      hh += '<div class="dim" style="margin-top:8px">Source: SEC Form 4 filings via Yahoo Finance. Insider purchases with personal money are historically a stronger signal than sales; many sales are pre-scheduled (Rule 10b5-1) or for taxes.</div>';
+      $('.res', el).innerHTML = hh;
+      if (c && c.t.length) {
+        const days = c.t.map(t => new Date(t * 1000).toISOString().slice(0, 10));
+        const idx = d => { const k = new Date(d * 1000).toISOString().slice(0, 10); let i = days.findIndex(x => x >= k); return i < 0 ? null : i; };
+        const marks = yr.filter(t => t.code === 'P' || t.code === 'S').map(t => ({ i: idx(t.date), up: t.code === 'P' })).filter(m => m.i != null);
+        mountChart($('canvas', el), { x: c.t.map(t => fD(xd(t, c.meta.gmtoffset))), s: [{ d: c.c, c: COLORS[0], fill: true }], marks, yf: v => nf(v, dec(y, v)) });
+      }
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- INSB: market-wide insider buying
+const INSB_KINDS = [['buys', 'BUYS ≥$25K'], ['cluster', 'CLUSTER BUYS'], ['officers', 'OFFICER BUYS'], ['sells', 'SELLS ≥$100K'], ['all', 'ALL']];
+FN.INSB = {
+  d: 'Latest insider buying across the market (cluster buys, officer buys)', cat: 'edge',
+  r(p, y, arg) {
+    const k = INSB_KINDS.find(x => x[0] === String(arg || '').toLowerCase()) ? String(arg).toLowerCase() : 'buys';
+    p.title = 'Insider Trading Monitor — SEC Form 4';
+    return `<div class="bar">${INSB_KINDS.map(([v, l]) => `<button class="tab ${v === k ? 'on' : ''}" data-go="INSB|${v}">${l}</button>`).join('')}<span class="lbl">Filter</span><input class="inp" id="if" size="10" placeholder="ticker/name"></div><div class="res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const k = INSB_KINDS.find(x => x[0] === String(arg || '').toLowerCase()) ? String(arg).toLowerCase() : 'buys';
+    let data = null;
+    const draw = () => {
+      if (!data) return;
+      const q = ($('#if', el).value || '').toUpperCase();
+      const rows = data.rows.filter(r => !q || r.sym.includes(q) || (r.company || '').toUpperCase().includes(q) || (r.insider || '').toUpperCase().includes(q));
+      const counts = {}; data.rows.forEach(r => { if (/^P/.test(r.type)) counts[r.sym] = (counts[r.sym] || 0) + 1; });
+      p.actions = rows.map(r => r.sym + ' INSD');
+      $('.res', el).innerHTML = `<div class="pad dim">${esc(data.src)} · ${rows.length} filings · "Since" = move from the insider's price to now${k === 'cluster' ? ' · Cluster = several insiders buying the same stock' : ''}</div>
+        <table><thead><tr><th></th><th class="l">Filed</th><th class="l">Trade</th><th class="l">Ticker</th><th class="l">Company</th>${k === 'cluster' ? '<th># Insiders</th><th class="l">Industry</th>' : '<th class="l">Insider</th><th class="l">Title</th>'}<th class="l">Type</th><th>Price</th><th>Qty</th><th>ΔOwn</th><th>Value</th><th>Since</th><th>Last</th></tr></thead><tbody>` +
+        rows.map((r, i) => `<tr class="clk" data-cmd="${esc(r.sym)} INSD"><td class="n">${i + 1})</td><td class="l dim">${esc(r.filed.slice(0, 16))}</td><td class="l dim">${esc(r.trade)}</td><td class="l amb">${esc(r.sym)}${counts[r.sym] > 1 && k !== 'cluster' ? ' <span class="up" title="multiple insider buys in this list">●</span>' : ''}</td><td class="l name">${esc(r.company)}</td>${k === 'cluster' ? `<td class="up">${r.insiders ?? ''}</td><td class="l dim name">${esc(r.industry)}</td>` : `<td class="l">${esc(r.insider)}</td><td class="l dim">${esc(r.title)}</td>`}<td class="l ${/^P/.test(r.type) ? 'up' : /^S/.test(r.type) ? 'dn' : ''}">${esc(r.type)}</td><td>${ok(r.price) ? nf(r.price, 2) : ''}</td><td>${big(r.qty)}</td><td class="dim">${esc(r.down)}</td><td class="${/^P/.test(r.type) ? 'up' : 'dn'}">${money(r.value)}</td>${sinceCell(r.sym, r.price)}<td>${L(r.sym, 'pct')}</td></tr>`).join('') + '</tbody></table>';
+    };
+    $('#if', el).oninput = draw;
+    $('#if', el).onkeydown = e => e.stopPropagation();
+    cachedApi('oi:' + k, 300e3, 'openinsider?kind=' + k).then(d => {
+      if (!p.alive(el)) return;
+      data = d;
+      subscribe(p, d.rows.slice(0, 120).map(r => r.sym));
+      draw();
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+    let n = 0; p.tick = () => { if (++n % 2 === 0) draw(); };
+  },
+};
+
+// ---------------------------------------------------------------- CONG: congressional trading disclosures
+FN.CONG = {
+  d: 'Congress stock trading disclosures (House periodic transaction reports)', cat: 'edge',
+  r(p, y, arg) {
+    p.title = 'Congressional Trading — House PTR Filings';
+    return `<div class="bar"><span class="lbl">Member</span><input class="inp" id="cq" size="18" value="${esc(arg || '')}" placeholder="e.g. Pelosi"><span class="lbl">Reports of stock trades by members of the House (STOCK Act). Click a filing to extract its trades.</span></div>
+      <div class="pad trades"></div><div class="res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    let rows = [];
+    const parsed = {};
+    const tradeTable = list => `<table><thead><tr><th class="l">Member</th><th class="l">Ticker</th><th class="l">Asset</th><th class="l">Type</th><th class="l">Trade date</th><th class="l">Amount</th><th>Last</th></tr></thead><tbody>` +
+      list.map(t => `<tr><td class="l">${esc(t.member || '')}</td><td class="l">${symCell(t.sym)}</td><td class="l name dim">${esc(t.asset)}</td><td class="l ${t.type === 'Purchase' ? 'up' : /Sale/.test(t.type) ? 'dn' : ''}">${esc(t.type)}</td><td class="l dim">${esc(t.date)}</td><td class="l">${esc(t.amount)}</td><td>${L(t.sym, 'pct')}</td></tr>`).join('') + '</tbody></table>';
+    const draw = () => {
+      const q = ($('#cq', el).value || '').toLowerCase();
+      const list = rows.filter(r => !q || r.name.toLowerCase().includes(q) || r.district.toLowerCase().includes(q)).slice(0, 300);
+      $('.res', el).innerHTML = `<table><thead><tr><th class="l">Filed</th><th class="l">Member</th><th class="l">District</th><th class="l">Trades</th><th class="l">Report</th></tr></thead><tbody>` +
+        list.map(r => { const pr = parsed[r.doc]; return `<tr class="clk" data-doc="${r.doc}" data-yr="${r.date.slice(0, 4)}"><td class="l dim">${r.date}</td><td class="l amb">${esc(r.name)}</td><td class="l">${esc(r.district)}</td><td class="l">${pr ? (pr.tx.length ? pr.tx.slice(0, 6).map(t => `<span class="${t.type === 'Purchase' ? 'up' : 'dn'}">${esc(t.sym)}</span>`).join(' ') + (pr.tx.length > 6 ? ` +${pr.tx.length - 6}` : '') : '<span class="dim">see PDF (scanned/handwritten)</span>') : '<span class="dim">click to extract</span>'}</td><td class="l"><a class="blu" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">PDF ↗</a></td></tr>`; }).join('') + '</tbody></table>';
+      const all = Object.entries(parsed).flatMap(([doc, pr]) => pr.tx.map(t => ({ ...t, member: rows.find(r => r.doc === doc)?.name })));
+      $('.trades', el).innerHTML = all.length ? `<div class="h" style="margin-bottom:6px">EXTRACTED TRADES (${all.length})</div>${tradeTable(all)}` : '';
+      subscribe(p, all.map(t => t.sym));
+    };
+    const parse = (doc, yr) => api(`ptr?doc=${doc}&yr=${yr}`).then(d => { parsed[doc] = d; if (p.alive(el)) draw(); }).catch(() => { parsed[doc] = { tx: [] }; if (p.alive(el)) draw(); });
+    $('#cq', el).oninput = draw;
+    $('#cq', el).onkeydown = e => e.stopPropagation();
+    el.addEventListener('click', e => { const tr = e.target.closest('[data-doc]'); if (tr && !e.target.closest('a')) parse(tr.dataset.doc, tr.dataset.yr); });
+    cachedApi('house', 3600e3, 'congress').then(d => {
+      if (!p.alive(el)) return;
+      rows = d.rows; draw();
+      (async () => { for (const r of rows.slice(0, 12)) { if (!p.alive(el)) return; await parse(r.doc, r.date.slice(0, 4)); } })();
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- HDS: holders
+FN.HDS = {
+  d: 'Institutional, fund & insider holders', cat: 'edge', sec: true,
+  r(p, y) { p.syms = [y]; return '<div class="pad res"><div class="empty spin"></div></div>'; },
+  m(p, el, y) {
+    cachedApi('hold:' + y, 600e3, 'holders?symbol=' + encodeURIComponent(y)).then(h => {
+      if (!p.alive(el)) return;
+      const mh = h.majorHoldersBreakdown || {};
+      const own = (list, title) => list?.length ? `<div class="h" style="margin:12px 0 6px">${title}</div><table><thead><tr><th class="l">Holder</th><th>% Held</th><th>Shares</th><th>Value</th><th>Change</th><th class="l">Reported</th></tr></thead><tbody>` +
+        list.map(o => `<tr><td class="l amb">${esc(o.organization)}</td><td>${pct0(rv(o.pctHeld) * 100)}</td><td>${big(rv(o.position))}</td><td>${money(rv(o.value))}</td><td class="${cls(rv(o.pctChange))}">${pc(rv(o.pctChange) * 100)}</td><td class="l dim">${esc(o.reportDate?.fmt || '')}</td></tr>`).join('') + '</tbody></table>' : '';
+      $('.res', el).innerHTML = `<div class="cols">${box('Ownership Breakdown', kv([
+        ['Insiders', pct0(rv(mh.insidersPercentHeld) * 100)], ['Institutions', pct0(rv(mh.institutionsPercentHeld) * 100)],
+        ['Institutions (% of float)', pct0(rv(mh.institutionsFloatPercentHeld) * 100)], ['# Institutions', nf(rv(mh.institutionsCount), 0)],
+      ]))}${box('Institutional Flow (6M)', kv([['Net institutional buying', `<span class="${cls(rv(h.netSharePurchaseActivity?.netInstBuyingPercent))}">${pc(rv(h.netSharePurchaseActivity?.netInstBuyingPercent) * 100)}</span>`], ['Net institutional shares', big(rv(h.netSharePurchaseActivity?.netInstSharesBuying))]]))}</div>
+        ${own(h.institutionOwnership?.ownershipList, 'TOP INSTITUTIONAL HOLDERS (13F)')}${own(h.fundOwnership?.ownershipList, 'TOP MUTUAL FUND / ETF HOLDERS')}
+        <div class="dim" style="margin-top:8px">Source: 13F/N-PORT filings via Yahoo Finance. Institutional positions are reported quarterly with a lag of up to 45 days.</div>`;
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- OMON: options monitor
+function maxPain(calls, puts) {
+  const strikes = [...new Set([...calls, ...puts].map(c => c.k))].sort((a, b) => a - b);
+  let best = null, bestV = Infinity;
+  for (const K of strikes) {
+    let v = 0;
+    for (const c of calls) v += c.oi * Math.max(0, K - c.k);
+    for (const q of puts) v += q.oi * Math.max(0, q.k - K);
+    if (v < bestV) { bestV = v; best = K; }
+  }
+  return best;
+}
+FN.OMON = {
+  d: 'Options monitor: chain, put/call, max pain, implied move, unusual volume', cat: 'edge', sec: true,
+  r(p, y, arg) {
+    p.syms = [y];
+    return `<div class="bar exps"><span class="spin"></span></div><div class="pad sum"></div><div class="chartwrap" style="height:180px;min-height:160px;margin:0 8px"><canvas class="chart"></canvas></div><div class="res"></div>`;
+  },
+  m(p, el, y, arg) {
+    const date = Number(arg) || '';
+    api(`options?symbol=${encodeURIComponent(y)}${date ? '&date=' + date : ''}`).then(d => {
+      if (!p.alive(el)) return;
+      const fmtE = t => new Date(t * 1000).toISOString().slice(5, 10);
+      $('.exps', el).innerHTML = d.exps.slice(0, 12).map(t => `<button class="tab ${t === d.exp ? 'on' : ''}" data-go="OMON|${t}">${fmtE(t)}</button>`).join('') + (d.exps.length > 12 ? `<select class="inp" id="ox"><option value="">more…</option>${d.exps.slice(12).map(t => `<option value="${t}">${new Date(t * 1000).toISOString().slice(0, 10)}</option>`).join('')}</select>` : '');
+      const ox = $('#ox', el); if (ox) ox.onchange = () => ox.value && p.go('OMON', y, ox.value, false);
+      const spot = d.spot, all = [...d.calls, ...d.puts];
+      const hasOI = all.some(c => c.oi > 0);
+      const sumv = a => a.reduce((s, c) => s + c.vol, 0), sumo = a => a.reduce((s, c) => s + c.oi, 0);
+      const atmK = [...d.calls].sort((a, b) => Math.abs(a.k - spot) - Math.abs(b.k - spot))[0]?.k;
+      const atmC = d.calls.find(c => c.k === atmK), atmP = d.puts.find(c => c.k === atmK);
+      const mid = c => c ? (c.bid > 0 && c.ask > 0 ? (c.bid + c.ask) / 2 : c.last) : null;
+      const straddle = (mid(atmC) || 0) + (mid(atmP) || 0);
+      const dte = Math.max(0, (d.exp * 1000 - Date.now()) / 864e5);
+      const iv = [atmC?.iv, atmP?.iv].filter(v => v > 0.02);
+      const mp = hasOI ? maxPain(d.calls, d.puts) : null;
+      $('.sum', el).innerHTML = `<div class="cols">${kv([['Underlying', `${L(y, 'price')} ${L(y, 'pct')}`], ['Expiry', `${new Date(d.exp * 1000).toISOString().slice(0, 10)} (${nf(dte, 1)}d)`], ['ATM strike', ok(atmK) ? nf(atmK, 2) : '—']])}
+        ${kv([['Put/Call volume', sumv(d.calls) ? nf(sumv(d.puts) / sumv(d.calls), 2) : '—'], ['Put/Call open int.', hasOI && sumo(d.calls) ? nf(sumo(d.puts) / sumo(d.calls), 2) : '—'], ['Max pain', ok(mp) ? `${nf(mp, 2)} <span class="dim">(${pc((mp / spot - 1) * 100, 1)} vs spot)</span>` : '—']])}
+        ${kv([['Implied move (ATM straddle)', straddle ? `±${nf(straddle, 2)} (±${pc(straddle / spot * 100, 1).replace('+', '')})` : '—'], ['ATM implied vol', iv.length ? pc(iv.reduce((a, b) => a + b) / iv.length * 100, 1).replace('+', '') : '—'], ['Volume (C / P)', `${big(sumv(d.calls))} / ${big(sumv(d.puts))}`]])}</div>
+        ${hasOI ? '' : '<div class="yel" style="margin-top:6px">Open interest, bid/ask and IV are not published outside US market hours. Volume shown is from the last session.</div>'}`;
+      const lo = spot * 0.7, hi = spot * 1.3;
+      const strikes = [...new Set(all.map(c => c.k))].filter(k => k >= lo && k <= hi).sort((a, b) => a - b);
+      const cm = Object.fromEntries(d.calls.map(c => [c.k, c])), pm = Object.fromEntries(d.puts.map(c => [c.k, c]));
+      mountChart($('canvas', el), { x: strikes.map(k => nf(k, k < 10 ? 1 : 0)), s: [{ n: hasOI ? 'Call OI' : 'Call vol', d: strikes.map(k => (hasOI ? cm[k]?.oi : cm[k]?.vol) ?? 0), c: '#21d07a', w: 1.6 }, { n: hasOI ? 'Put OI' : 'Put vol', d: strikes.map(k => (hasOI ? pm[k]?.oi : pm[k]?.vol) ?? 0), c: '#ff4d5e', w: 1.6 }], dots: true, yf: v => big(v, 0) });
+      const cell = c => {
+        if (!c) return '<td></td><td></td><td></td><td></td><td></td>';
+        const un = c.vol > 0 && (hasOI ? c.vol > c.oi && c.vol >= 100 : c.vol >= 1000);
+        return `<td>${ok(c.last) ? nf(c.last, 2) : ''}</td><td class="${cls(c.chg)}">${c.chg ? sgn(c.chg, 2) : ''}</td><td class="${un ? 'yel' : ''}" ${un ? 'title="volume exceeds open interest"' : ''}>${c.vol ? nf(c.vol, 0) : ''}</td><td>${hasOI ? nf(c.oi, 0) : ''}</td><td class="dim">${c.iv > 0.02 ? nf(c.iv * 100, 1) : ''}</td>`;
+      };
+      $('.res', el).innerHTML = `<table><thead><tr><th colspan="5" style="text-align:center;color:var(--up)">CALLS</th><th></th><th colspan="5" style="text-align:center;color:var(--dn)">PUTS</th></tr><tr><th>Last</th><th>Chg</th><th>Vol</th><th>OI</th><th>IV%</th><th style="text-align:center">Strike</th><th>Last</th><th>Chg</th><th>Vol</th><th>OI</th><th>IV%</th></tr></thead><tbody>` +
+        strikes.map(k => `<tr style="${k === atmK ? 'outline:1px solid var(--amberdim)' : ''}">${cell(cm[k]).replace(/<td/g, k < spot ? '<td style="background:rgba(33,208,122,.05)"' : '<td')}<td style="text-align:center" class="amb"><b>${nf(k, 2)}</b></td>${cell(pm[k]).replace(/<td/g, k > spot ? '<td style="background:rgba(255,77,94,.05)"' : '<td')}</tr>`).join('') + '</tbody></table><div class="pad dim">Yellow volume = trading exceeded open interest (new positioning). Shaded = in the money. Source: Yahoo Finance (delayed).</div>';
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- UOA: unusual options activity
+FN.UOA = {
+  d: 'Unusual options activity scan (large & new positioning)', cat: 'edge',
+  r(p, y, arg) {
+    p.title = 'Unusual Options Activity';
+    return `<div class="bar"><span class="lbl">Symbols</span><input class="inp" id="us" size="40" value="${esc(arg || store.get('uoa.syms', ''))}" placeholder="default: 28 most-traded optionable names"><button class="btn" id="ug">SCAN</button></div><div class="res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const syms = (arg || store.get('uoa.syms', '')).toUpperCase().replace(/[^A-Z0-9.,^=-]/g, '');
+    const go = () => { const v = $('#us', el).value.trim(); store.set('uoa.syms', v); p.go('UOA', null, v || null, false); };
+    $('#ug', el).onclick = go;
+    $('#us', el).onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') go(); };
+    cachedApi('uoa:' + syms, 170e3, 'uoa' + (syms ? '?symbols=' + encodeURIComponent(syms) : '')).then(d => {
+      if (!p.alive(el)) return;
+      subscribe(p, d.stats.map(s => s.sym));
+      p.actions = d.rows.map(r => r.sym + ' OMON');
+      $('.res', el).innerHTML = `<div class="pad ${d.live ? 'dim' : 'yel'}">${esc(d.note)}</div>
+        <table><thead><tr><th></th><th class="l">Ticker</th><th class="l">Side</th><th>Strike</th><th class="l">Expiry</th><th>Spot</th><th class="l">Moneyness</th><th>Volume</th><th>Open Int</th><th>Vol/OI</th><th>Last</th><th>Premium</th><th>IV%</th></tr></thead><tbody>` +
+        d.rows.map((r, i) => `<tr class="clk" data-cmd="${esc(r.sym)} OMON"><td class="n">${i + 1})</td><td class="l amb">${esc(r.sym)}</td><td class="l ${r.side === 'C' ? 'up' : 'dn'}"><b>${r.side === 'C' ? 'CALL' : 'PUT'}</b></td><td>${nf(r.k, 2)}</td><td class="l dim">${new Date(r.exp * 1000).toISOString().slice(0, 10)}</td><td>${nf(r.spot, 2)}</td><td class="l dim">${r.otm ? 'OTM ' : 'ITM '}${pc(Math.abs(r.k / r.spot - 1) * 100, 1).replace('+', '')}</td><td>${nf(r.vol, 0)}</td><td>${r.oi != null ? nf(r.oi, 0) : '—'}</td><td class="yel">${r.oi ? nf(r.vol / r.oi, 1) + '×' : '—'}</td><td>${nf(r.last, 2)}</td><td class="${r.side === 'C' ? 'up' : 'dn'}"><b>${money(r.prem)}</b></td><td class="dim">${r.iv ? nf(r.iv * 100, 1) : ''}</td></tr>`).join('') +
+        `</tbody></table><div class="h pad" style="padding-top:12px">PUT/CALL RATIOS (nearest expiry)</div><table><thead><tr><th class="l">Ticker</th><th>Last</th><th>%Chg</th><th>Call vol</th><th>Put vol</th><th>P/C vol</th><th>Call OI</th><th>Put OI</th></tr></thead><tbody>` +
+        d.stats.map(s => `<tr class="clk" data-cmd="${esc(s.sym)} OMON"><td class="l amb">${esc(s.sym)}</td><td>${L(s.sym, 'price')}</td><td>${L(s.sym, 'pct')}</td><td>${big(s.cv)}</td><td>${big(s.pv)}</td><td class="${s.pcr > 1.2 ? 'dn' : s.pcr < 0.6 ? 'up' : ''}">${ok(s.pcr) ? nf(s.pcr, 2) : '—'}</td><td>${s.hasOI ? big(s.co) : '—'}</td><td>${s.hasOI ? big(s.po) : '—'}</td></tr>`).join('') + '</tbody></table>';
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- SI / SHRT: short interest & short volume
+FN.SI = {
+  d: 'Short interest & daily short volume', cat: 'edge', sec: true,
+  r(p, y) { p.syms = [y]; return '<div class="pad res"><div class="empty spin"></div></div>'; },
+  m(p, el, y) {
+    Promise.all([cachedApi('hold:' + y, 600e3, 'holders?symbol=' + encodeURIComponent(y)).catch(() => ({})), api('shortvol?symbol=' + encodeURIComponent(y)).catch(() => null)]).then(([h, sv]) => {
+      if (!p.alive(el)) return;
+      const ks = h.defaultKeyStatistics || {};
+      const si = rv(ks.sharesShort), prev = rv(ks.sharesShortPriorMonth);
+      const days = (sv?.days || []).filter(d => d.total);
+      const avg = days.length ? days.reduce((a, d) => a + d.short / d.total, 0) / days.length * 100 : null;
+      $('.res', el).innerHTML = `<div class="cols">${box('Short Interest (exchange-reported, twice monthly)', kv([
+        ['Shares short', big(si)], ['Prior month', big(prev)], ['Change', si && prev ? `<span class="${cls(si - prev)}">${pc((si / prev - 1) * 100, 1)}</span>` : '—'],
+        ['% of float', ok(rv(ks.shortPercentOfFloat)) ? pc(rv(ks.shortPercentOfFloat) * 100).replace('+', '') : '—'], ['Days to cover', ok(rv(ks.shortRatio)) ? nf(rv(ks.shortRatio), 2) : '—'],
+        ['Float', big(rv(ks.floatShares))], ['As of', esc(ks.dateShortInterest?.fmt || '—')],
+      ]))}${box('Daily Short-Sale Volume (FINRA)', `<div class="chartwrap" style="min-height:180px"><canvas class="chart"></canvas></div><div class="dim">${days.length} days · average ${ok(avg) ? nf(avg, 1) + '%' : '—'} of volume sold short</div>`)}</div>
+        ${days.length ? `<table style="margin-top:10px"><thead><tr><th class="l">Date</th><th>Short volume</th><th>Total volume</th><th>Short %</th></tr></thead><tbody>${[...days].reverse().map(d => `<tr><td class="l dim">${d.d.slice(0, 4)}-${d.d.slice(4, 6)}-${d.d.slice(6)}</td><td>${big(d.short)}</td><td>${big(d.total)}</td><td class="${d.short / d.total > 0.55 ? 'dn' : ''}">${nf(d.short / d.total * 100, 1)}%</td></tr>`).join('')}</tbody></table>` : ''}
+        <div class="dim" style="margin-top:8px">Daily short volume includes market-maker hedging and is not the same as short interest; watch for changes versus the stock's own average.</div>`;
+      if (days.length) mountChart($('canvas', el), { x: days.map(d => d.d.slice(4, 6) + '/' + d.d.slice(6)), s: [{ n: 'Short %', d: days.map(d => d.short / d.total * 100), c: COLORS[2], w: 2, fill: true }], ref: avg, dots: true, yf: v => nf(v, 0) + '%' });
+    });
+  },
+};
+FN.SHRT = {
+  d: 'Highest short-sale volume ratios today (FINRA)', cat: 'edge',
+  r(p) { p.title = 'Short-Sale Volume Leaders'; return '<div class="res"><div class="empty spin"></div></div>'; },
+  m(p, el) {
+    cachedApi('svtop', 1800e3, 'shortvol').then(d => {
+      if (!p.alive(el)) return;
+      subscribe(p, d.rows.map(r => r.sym));
+      p.actions = d.rows.map(r => r.sym + ' SI');
+      $('.res', el).innerHTML = `<div class="pad dim">${esc(d.src)} · ${d.d.slice(0, 4)}-${d.d.slice(4, 6)}-${d.d.slice(6)} · stocks with ≥3M shares traded</div><table><thead><tr><th></th><th class="l">Ticker</th><th>Short %</th><th>Short volume</th><th>Total volume</th><th>Last</th><th>%Chg</th></tr></thead><tbody>` +
+        d.rows.map((r, i) => `<tr class="clk" data-cmd="${esc(r.sym)} SI"><td class="n">${i + 1})</td><td class="l amb">${esc(r.sym)}</td><td class="dn">${nf(r.pct, 1)}%</td><td>${big(r.short)}</td><td>${big(r.total)}</td><td>${L(r.sym, 'price')}</td><td>${L(r.sym, 'pct')}</td></tr>`).join('') + '</tbody></table>';
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- WIRP: Fed funds futures implied path
+const FOMC = ['2026-01-28', '2026-03-18', '2026-04-29', '2026-06-17', '2026-07-29', '2026-09-16', '2026-10-28', '2026-12-09'];
+FN.WIRP = {
+  d: 'Fed rate expectations from fed funds futures (WIRP)', cat: 'edge',
+  r(p) {
+    p.title = 'Fed Funds Futures — Implied Rate Path';
+    return '<div class="pad"><div class="cols"><div class="sum"></div><div class="chartwrap" style="min-height:200px"><canvas class="chart"></canvas></div></div><div class="res" style="margin-top:10px"><div class="empty spin"></div></div></div>';
+  },
+  m(p, el) {
+    const months = [];
+    const d0 = new Date();
+    for (let i = 0; i < 14; i++) { const m = new Date(d0.getFullYear(), d0.getMonth() + i, 1); months.push({ y: m.getFullYear(), m: m.getMonth(), sym: `ZQ${MONTH_CODES[m.getMonth()]}${String(m.getFullYear()).slice(2)}.CBT`, label: m.toLocaleDateString('en-US', { month: 'short' }) + ' ' + String(m.getFullYear()).slice(2) }); }
+    Promise.all([api('quotes?symbols=' + encodeURIComponent(months.map(m => m.sym).join(','))), cachedApi('macro', 1800e3, 'macro').catch(() => ({}))]).then(([qs, mac]) => {
+      if (!p.alive(el)) return;
+      const effr = mac.effr?.length ? mac.effr[mac.effr.length - 1] : null;
+      const rows = months.map(m => ({ ...m, q: qs[m.sym] })).filter(m => m.q && ok(m.q.price) && m.q.price > 80).map(m => ({ ...m, rate: 100 - m.q.price }));
+      if (!rows.length) { $('.res', el).innerHTML = '<div class="empty">Fed funds futures quotes are unavailable right now.</div>'; return; }
+      const base = effr ? effr.v : rows[0].rate;
+      // Meeting-by-meeting probabilities (CME FedWatch method) for upcoming 2026 meetings
+      let pre = base;
+      const meet = FOMC.filter(d => Date.parse(d) > Date.now() - 864e5).map(d => {
+        const dt = new Date(d + 'T12:00:00Z'), y = dt.getUTCFullYear(), mo = dt.getUTCMonth(), N = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate(), day = dt.getUTCDate();
+        const row = rows.find(r => r.y === y && r.m === mo);
+        if (!row) return null;
+        const post = (row.rate - (day / N) * pre) / ((N - day) / N);
+        const move = (post - pre) * 100, res = { d, pre, post, move };
+        pre = post;
+        return res;
+      }).filter(Boolean);
+      const next = meet[0];
+      $('.sum', el).innerHTML = kv([
+        ['Effective fed funds (NY Fed)', effr ? `<b>${nf(effr.v, 2)}%</b> <span class="dim">${effr.d}${effr.lo ? ` · target ${nf(effr.lo, 2)}–${nf(effr.hi, 2)}%` : ''}</span>` : '—'],
+        ['Next FOMC decision', next ? next.d : '—'],
+        ['Priced move at next meeting', next ? `<span class="${cls(next.move)}"><b>${sgn(next.move, 1)} bp</b></span> → ${next.move <= -12.5 ? 'cut favoured' : next.move >= 12.5 ? 'hike favoured' : 'hold favoured'} (${nf(Math.min(100, Math.abs(next.move) / 25 * 100), 0)}% odds of a 25bp ${next.move < 0 ? 'cut' : 'hike'})` : '—'],
+        ['Priced by ' + rows[rows.length - 1].label, `<span class="${cls(rows[rows.length - 1].rate - base)}">${sgn((rows[rows.length - 1].rate - base) * 100, 0)} bp</span> (${nf(Math.abs(rows[rows.length - 1].rate - base) / 0.25, 1)} × 25bp ${rows[rows.length - 1].rate < base ? 'cuts' : 'hikes'})`],
+      ]) + `<div class="dim" style="margin-top:6px">Implied rate = 100 − futures price. Meeting odds use the CME FedWatch method on 30-day fed funds futures (CBOT ZQ).</div>`;
+      mountChart($('canvas', el), { x: rows.map(r => r.label), s: [{ n: 'Implied', d: rows.map(r => r.rate), c: COLORS[0], w: 2, fill: true }], ref: base, dots: true, yf: v => nf(v, 2) + '%' });
+      $('.res', el).innerHTML = (meet.length ? `<div class="h" style="margin-bottom:6px">FOMC MEETINGS</div><table><thead><tr><th class="l">Decision</th><th>Rate before</th><th>Implied after</th><th>Priced move</th><th class="l">Reading</th></tr></thead><tbody>${meet.map(m => `<tr><td class="l amb">${m.d}</td><td>${nf(m.pre, 3)}%</td><td>${nf(m.post, 3)}%</td><td class="${cls(m.move)}">${sgn(m.move, 1)} bp</td><td class="l dim">${Math.abs(m.move) < 5 ? 'hold' : `${nf(Math.min(100, Math.abs(m.move) / 25 * 100), 0)}% chance of 25bp ${m.move < 0 ? 'cut' : 'hike'}`}</td></tr>`).join('')}</tbody></table>` : '') +
+        `<div class="h" style="margin:12px 0 6px">MONTHLY CONTRACTS</div><table><thead><tr><th class="l">Month</th><th class="l">Contract</th><th>Price</th><th>Implied rate</th><th>vs EFFR</th><th>25bp moves</th></tr></thead><tbody>${rows.map(r => `<tr><td class="l amb">${r.label}</td><td class="l dim">${r.sym}</td><td>${nf(r.q.price, 3)}</td><td>${nf(r.rate, 3)}%</td><td class="${cls(r.rate - base)}">${sgn((r.rate - base) * 100, 1)} bp</td><td>${nf((r.rate - base) / 0.25, 2)}</td></tr>`).join('')}</tbody></table>`;
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- ECST: macro dashboard
+const MACRO_MKTS = [['^VIX', 'VIX (equity vol)'], ['^MOVE', 'MOVE (bond vol)'], ['DX-Y.NYB', 'US Dollar Index'], ['^TNX', 'US 10Y yield'], ['^IRX', 'US 3M bill'], ['GC=F', 'Gold'], ['HG=F', 'Copper'], ['CL=F', 'WTI crude'], ['HYG', 'High-yield bonds (HYG)'], ['TLT', '20Y+ Treasuries (TLT)'], ['BTC-USD', 'Bitcoin']];
+FN.ECST = {
+  d: 'Macro dashboard: inflation, jobs, Fed, yield curve, risk gauges', cat: 'edge',
+  r(p) {
+    p.title = 'Macro Dashboard';
+    p.syms = MACRO_MKTS.map(m => m[0]);
+    return `<div class="pad"><div class="cards"><div class="empty spin"></div></div>
+      <div class="cols" style="margin-top:10px">${box('Risk Gauges (live)', `<table><tbody>${MACRO_MKTS.map(([y, n]) => `<tr class="clk" data-cmd="${esc(disp(y))} GP"><td class="l">${esc(n)}</td><td>${L(y, 'price')}</td><td>${L(y, 'pct')}</td></tr>`).join('')}<tr><td class="l">Copper / gold ratio ×1000</td><td class="cg" colspan="2"></td></tr></tbody></table>`)}
+      ${box('Yield Curve', '<div class="curve"><div class="spin"></div></div>')}</div></div>`;
+  },
+  m(p, el) {
+    const cg = () => { const c = Q['HG=F']?.price, g = Q['GC=F']?.price; const x = $('.cg', el); if (x) x.textContent = ok(c) && ok(g) ? nf(c / g * 1000, 3) : '…'; };
+    cg(); p.tick = cg;
+    cachedApi('macro', 1800e3, 'macro').then(m => {
+      if (!p.alive(el)) return;
+      const B = m.bls || {};
+      const yoy = s => { const a = s?.data || []; if (a.length < 13) return null; const l = a[a.length - 1], y = a.find(x => x.d === `${Number(l.d.slice(0, 4)) - 1}${l.d.slice(4)}`); return y ? { v: (l.v / y.v - 1) * 100, d: l.d, series: a.slice(12).map((x, i) => ({ d: x.d, v: (x.v / a[i].v - 1) * 100 })) } : null; };
+      const lvl = s => { const a = s?.data || []; return a.length ? { v: a[a.length - 1].v, prev: a[a.length - 2]?.v, d: a[a.length - 1].d, series: a } : null; };
+      const pay = s => { const a = s?.data || []; if (a.length < 2) return null; const series = a.slice(1).map((x, i) => ({ d: x.d, v: x.v - a[i].v })); return { v: series[series.length - 1].v, prev: series[series.length - 2]?.v, d: a[a.length - 1].d, series }; };
+      const last = a => a?.length ? { v: a[a.length - 1].v, prev: a[a.length - 2]?.v, d: a[a.length - 1].d, series: a } : null;
+      const cards = [
+        ['CPI inflation (y/y)', yoy(B.CUUR0000SA0), v => nf(v, 1) + '%'], ['Core CPI (y/y)', yoy(B.CUUR0000SA0L1E), v => nf(v, 1) + '%'],
+        ['Unemployment rate', lvl(B.LNS14000000), v => nf(v, 1) + '%'], ['Payrolls (m/m, thousands)', pay(B.CES0000000001), v => sgn(v, 0) + 'K'],
+        ['Avg hourly earnings (y/y)', yoy(B.CES0500000003), v => nf(v, 1) + '%'], ['JOLTS openings', lvl(B.JTS000000000000000JOL), v => nf(v / 1000, 2) + 'M'],
+        ['Effective fed funds', last(m.effr), v => nf(v, 2) + '%'], ['SOFR', last(m.sofr), v => nf(v, 2) + '%'],
+      ];
+      $('.cards', el).innerHTML = `<div class="kpis">${cards.map(([n, x, f], i) => `<div class="kpi"><div class="dim">${n}</div>${x ? `<div class="big">${f(x.v)}</div><div class="dim">${x.prev != null && x.series ? `prev ${f(x.series[x.series.length - 2]?.v ?? x.prev)} · ` : ''}${x.d}</div><div class="spark"><canvas class="chart" data-i="${i}"></canvas></div>` : '<div class="dim">unavailable</div>'}</div>`).join('')}</div>
+        ${m.errors?.length ? `<div class="dim" style="margin-top:6px">Some sources failed: ${esc(m.errors.join('; '))}</div>` : ''}<div class="dim" style="margin-top:6px">Sources: U.S. Bureau of Labor Statistics, Federal Reserve Bank of New York.</div>`;
+      $$('canvas[data-i]', el).forEach(cv => { const x = cards[+cv.dataset.i][1]; if (x?.series) { const s = x.series.slice(-36); mountChart(cv, { x: s.map(q => q.d), s: [{ d: s.map(q => q.v), c: COLORS[0], w: 1.5, fill: true, noTag: true }], yf: v => nf(v, 1), mini: true }); } });
+    }).catch(e => p.alive(el) && fail(el, e, '.cards'));
+    cachedApi('ust', 1800e3, 'ust').then(d => {
+      if (!p.alive(el)) return;
+      const cur = d.rows[0], g = n => cur.v[d.cols.indexOf(n)];
+      const sp = (a, b) => ok(a) && ok(b) ? (a - b) * 100 : null;
+      $('.curve', el).innerHTML = kv([['3M', nf(g('3 Mo'), 2) + '%'], ['2Y', nf(g('2 Yr'), 2) + '%'], ['10Y', nf(g('10 Yr'), 2) + '%'], ['30Y', nf(g('30 Yr'), 2) + '%'],
+        ['2s10s spread', `<span class="${cls(sp(g('10 Yr'), g('2 Yr')))}">${sgn(sp(g('10 Yr'), g('2 Yr')), 0)} bp</span>`], ['3m10y spread', `<span class="${cls(sp(g('10 Yr'), g('3 Mo')))}">${sgn(sp(g('10 Yr'), g('3 Mo')), 0)} bp</span> ${sp(g('10 Yr'), g('3 Mo')) < 0 ? '<span class="dn">inverted</span>' : ''}`], ['As of', cur.date]]) + '<div class="dim" style="margin-top:6px">Source: U.S. Treasury. Open GC for the full curve.</div>';
+    }).catch(() => { });
+  },
+};
+
+// ---------------------------------------------------------------- PRED: prediction markets
+const PRED_TABS = [['MACRO', /\bfed\b|rate|inflation|cpi|recession|gdp|jobs|payroll|unemploy|tariff|s&p|nasdaq|stock|treasury|oil|shutdown|debt|econom|interest|powell|bitcoin|btc|ethereum|price/i], ['POLITICS', /politic|election|president|senate|house|congress|trump|minister|governor|mayor|party/i], ['GEOPOLITICS', /war|israel|iran|russia|ukraine|china|taiwan|nato|strike|ceasefire|military|gaza|geopolit/i], ['CRYPTO', /crypto|bitcoin|btc|eth|solana|token/i], ['ALL', null]];
+FN.PRED = {
+  d: 'Prediction markets: Fed, macro, politics odds (Polymarket, Kalshi)', cat: 'edge',
+  r(p, y, arg) {
+    const tab = PRED_TABS.find(t => t[0] === arg) ? arg : 'MACRO';
+    p.title = 'Prediction Markets';
+    return `<div class="bar">${PRED_TABS.map(([k]) => `<button class="tab ${k === tab ? 'on' : ''}" data-go="PRED|${k}">${k}</button>`).join('')}<span class="lbl">Search</span><input class="inp" id="pq" size="14"></div><div class="pad res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const tab = PRED_TABS.find(t => t[0] === arg) || PRED_TABS[0];
+    let data = null;
+    const draw = () => {
+      if (!data) return;
+      const q = ($('#pq', el).value || '').toLowerCase();
+      const isSport = e => e.tags.some(t => /sport|soccer|tennis|nfl|nba|mlb|nhl|games|esports|ufc|f1|golf/i.test(t)) || / vs\.? /i.test(e.title);
+      const evs = data.events.filter(e => !isSport(e)).filter(e => !tab[1] || tab[1].test(e.title + ' ' + e.tags.join(' '))).filter(e => !q || e.title.toLowerCase().includes(q)).sort((a, b) => (b.src === 'Polymarket' ? b.vol24 : b.vol24 * 0.5) - (a.src === 'Polymarket' ? a.vol24 : a.vol24 * 0.5)).slice(0, 60);
+      $('.res', el).innerHTML = evs.length ? `<div class="predgrid">${evs.map(e => `<a class="pred" href="${esc(e.url)}" target="_blank" rel="noopener noreferrer"><div class="pt"><span class="src ${e.src === 'Kalshi' ? 'k' : ''}">${e.src}</span> ${esc(unent(e.title))}</div>${e.outcomes.slice(0, 4).map(o => `<div class="po"><span class="pn">${esc(unent(o.name))}</span><span class="pb"><i style="width:${Math.max(1, Math.min(100, o.p * 100)).toFixed(1)}%"></i></span><b>${nf(o.p * 100, o.p < 0.1 ? 1 : 0)}%</b></div>`).join('')}<div class="dim pv">24h vol ${e.src === 'Polymarket' ? money(e.vol24) : big(e.vol24) + ' contracts'}${e.end ? ' · ends ' + String(e.end).slice(0, 10) : ''}</div></a>`).join('')}</div>`
+        : '<div class="empty">No markets match.</div>';
+    };
+    $('#pq', el).oninput = draw;
+    $('#pq', el).onkeydown = e => e.stopPropagation();
+    cachedApi('pred', 120e3, 'predict').then(d => { data = d; if (p.alive(el)) draw(); }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- SENT: sentiment
+FN.SENT = {
+  d: 'Sentiment: Fear & Greed index, Reddit/WallStreetBets trending tickers', cat: 'edge',
+  r(p) {
+    p.title = 'Market Sentiment';
+    return `<div class="pad"><div class="cols">${box('CNN Fear & Greed Index', '<div class="fg"><div class="spin"></div></div>')}${box('Fear & Greed — 1 Year', '<div class="chartwrap" style="min-height:190px"><canvas class="chart"></canvas></div>')}</div><div class="h" style="margin:12px 0 6px">TRENDING ON REDDIT (WallStreetBets, r/stocks, r/investing…)</div><div class="res"><div class="empty spin"></div></div></div>`;
+  },
+  m(p, el) {
+    cachedApi('sent', 300e3, 'sentiment').then(s => {
+      if (!p.alive(el)) return;
+      const f = s.fng;
+      const col = v => v < 25 ? '#ff4d5e' : v < 45 ? '#ff9f43' : v <= 55 ? '#ffd84d' : v <= 75 ? '#8fd36a' : '#21d07a';
+      $('.fg', el).innerHTML = f ? `<div style="display:flex;align-items:baseline;gap:12px"><span class="big" style="font-size:40px;color:${col(f.score)}">${nf(f.score, 0)}</span><span style="color:${col(f.score)};text-transform:uppercase;font-weight:700">${esc(f.rating)}</span></div>
+        <div class="fgbar"><i style="left:${f.score}%"></i></div><div class="fgl"><span>Extreme fear</span><span>Neutral</span><span>Extreme greed</span></div>
+        ${kv([['Previous close', nf(f.prev, 0)], ['1 week ago', nf(f.w1, 0)], ['1 month ago', nf(f.m1, 0)], ['1 year ago', nf(f.y1, 0)]])}<div class="dim" style="margin-top:6px">Contrarian read: extreme fear has historically preceded above-average forward returns.</div>`
+        : `<div class="dim">Unavailable (${esc(s.fngErr || '')})</div>`;
+      if (s.fngHist?.length) mountChart($('canvas', el), { x: s.fngHist.map(h => new Date(h[0]).toISOString().slice(5, 10)), s: [{ n: 'F&G', d: s.fngHist.map(h => h[1]), c: COLORS[0], w: 1.6, fill: true }], ref: 50, yf: v => nf(v, 0) });
+      subscribe(p, s.reddit.map(r => r.sym));
+      p.actions = s.reddit.map(r => r.sym + ' DES');
+      $('.res', el).innerHTML = s.reddit.length ? `<table><thead><tr><th>Rank</th><th>Δ 24h</th><th class="l">Ticker</th><th class="l">Name</th><th>Mentions</th><th>Δ mentions</th><th>Upvotes</th><th>Last</th><th>%Chg</th></tr></thead><tbody>` +
+        s.reddit.map(r => { const dr = r.rank24 ? r.rank24 - r.rank : null, dm = r.mentions24 ? (r.mentions / r.mentions24 - 1) * 100 : null; return `<tr class="clk" data-cmd="${esc(r.sym)} DES"><td>${r.rank}</td><td class="${cls(dr)}">${dr ? (dr > 0 ? '▲' : '▼') + Math.abs(dr) : '—'}</td><td class="l amb">${esc(r.sym)}</td><td class="l name">${esc(unent(r.name))}</td><td>${nf(r.mentions, 0)}</td><td class="${cls(dm)}">${ok(dm) ? pc(dm, 0) : 'new'}</td><td>${nf(r.upvotes, 0)}</td><td>${L(r.sym, 'price')}</td><td>${L(r.sym, 'pct')}</td></tr>`; }).join('') + '</tbody></table><div class="dim" style="margin-top:6px">Source: ApeWisdom (Reddit mention counts over 24h).</div>'
+        : `<div class="empty">Reddit data unavailable (${esc(s.redditErr || '')})</div>`;
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- ECO / EARN: calendars
+FN.ECO = {
+  d: 'Economic calendar (this week)', cat: 'edge',
+  r(p, y, arg) {
+    const f = ['ALL', 'HIGH', 'USD'].includes(arg) ? arg : 'HIGH';
+    p.title = 'Economic Calendar — This Week';
+    return `<div class="bar">${[['HIGH', 'HIGH + MEDIUM IMPACT'], ['USD', 'US ONLY'], ['ALL', 'ALL']].map(([k, l]) => `<button class="tab ${k === f ? 'on' : ''}" data-go="ECO|${k}">${l}</button>`).join('')}<span class="lbl">Times in your local time zone</span></div><div class="res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const f = ['ALL', 'HIGH', 'USD'].includes(arg) ? arg : 'HIGH';
+    cachedApi('eco', 900e3, 'ecocal').then(d => {
+      if (!p.alive(el)) return;
+      const ev = d.events.filter(e => f === 'ALL' || (f === 'USD' ? e.country === 'USD' : ['High', 'Medium'].includes(e.impact)));
+      const today = new Date().toDateString();
+      let h = '<table><thead><tr><th class="l">Time</th><th class="l">Ccy</th><th class="l">Impact</th><th class="l">Event</th><th>Forecast</th><th>Previous</th></tr></thead><tbody>', day = '';
+      for (const e of ev) {
+        const t = new Date(e.date), ds = t.toDateString();
+        if (ds !== day) { day = ds; h += `<tr class="grp"><td colspan="6">${t.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}${ds === today ? ' — TODAY' : ''}</td></tr>`; }
+        const ic = { High: 'dn', Medium: 'yel', Low: 'dim', Holiday: 'blu' }[e.impact] || 'dim';
+        h += `<tr style="${t < Date.now() ? 'opacity:.55' : ''}"><td class="l">${pad2(t.getHours())}:${pad2(t.getMinutes())}</td><td class="l amb">${esc(e.country)}</td><td class="l ${ic}">● ${esc(e.impact)}</td><td class="l">${esc(e.title)}</td><td>${esc(e.forecast)}</td><td class="dim">${esc(e.previous)}</td></tr>`;
+      }
+      $('.res', el).innerHTML = h + `</tbody></table><div class="pad dim">Source: ${esc(d.src)}. Greyed rows have already been released.</div>`;
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+FN.EARN = {
+  d: 'Earnings calendar', cat: 'edge',
+  r(p, y, arg) {
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(arg || '') ? arg : new Date().toISOString().slice(0, 10);
+    p.title = 'Earnings Calendar ' + d;
+    const shift = n => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); if (x.getUTCDay() === 0) x.setUTCDate(x.getUTCDate() + (n > 0 ? 1 : -2)); if (x.getUTCDay() === 6) x.setUTCDate(x.getUTCDate() + (n > 0 ? 2 : -1)); return x.toISOString().slice(0, 10); };
+    return `<div class="bar"><button class="tab" data-go="EARN|${shift(-1)}">◀ ${shift(-1)}</button><span class="amb" style="padding:0 8px">${d}</span><button class="tab" data-go="EARN|${shift(1)}">${shift(1)} ▶</button><input type="date" class="inp" id="ed" value="${d}"></div><div class="res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(arg || '') ? arg : new Date().toISOString().slice(0, 10);
+    $('#ed', el).onchange = e => e.target.value && p.go('EARN', null, e.target.value, false);
+    cachedApi('earn:' + d, 1800e3, 'earnings?date=' + d).then(r => {
+      if (!p.alive(el)) return;
+      const mc = s => Number(String(s || '').replace(/[$,]/g, '')) || 0;
+      const rows = r.rows.sort((a, b) => mc(b.mcap) - mc(a.mcap));
+      subscribe(p, rows.slice(0, 80).map(x => x.sym));
+      p.actions = rows.map(x => x.sym + ' DES');
+      const tm = { 'time-pre-market': 'Before open', 'time-after-hours': 'After close' };
+      $('.res', el).innerHTML = rows.length ? `<table><thead><tr><th></th><th class="l">Ticker</th><th class="l">Company</th><th class="l">When</th><th>EPS est.</th><th># Est.</th><th>Year-ago EPS</th><th>Mkt cap</th><th>Last</th><th>%Chg</th></tr></thead><tbody>` +
+        rows.map((x, i) => `<tr class="clk" data-cmd="${esc(x.sym)} DES"><td class="n">${i + 1})</td><td class="l amb">${esc(x.sym)}</td><td class="l name">${esc(x.name)}</td><td class="l ${x.time === 'time-pre-market' ? 'yel' : x.time === 'time-after-hours' ? 'blu' : 'dim'}">${tm[x.time] || '—'}</td><td>${esc(x.eps)}</td><td class="dim">${esc(x.n)}</td><td class="dim">${esc(x.last)}</td><td>${mc(x.mcap) ? '$' + big(mc(x.mcap)) : '—'}</td><td>${L(x.sym, 'price')}</td><td>${L(x.sym, 'pct')}</td></tr>`).join('') + `</tbody></table><div class="pad dim">Source: ${esc(r.src)}. Use OMON on a ticker to see the options-implied earnings move.</div>`
+        : '<div class="empty">No earnings scheduled for this date.</div>';
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- TRACK: vessel tracking
+let TRK = store.get('trk', []);
+const TRK_HIST = store.get('trk.hist', {});
+const saveTrk = () => { store.set('trk', TRK); store.set('trk.hist', TRK_HIST); };
+function trackVessel(s) {
+  if (!TRK.find(t => t.mmsi === s.mmsi)) { TRK.push({ mmsi: s.mmsi, name: s.name || String(s.mmsi) }); }
+  recordTrail([s]); saveTrk();
+}
+function recordTrail(ships) {
+  for (const s of ships) {
+    if (!TRK.find(t => t.mmsi === s.mmsi) || s.lat == null) continue;
+    const h = (TRK_HIST[s.mmsi] ||= []), last = h[h.length - 1];
+    if (!last || Math.abs(last[1] - s.lat) > 1e-4 || Math.abs(last[2] - s.lon) > 1e-4) h.push([Date.now(), +s.lat.toFixed(5), +s.lon.toFixed(5), s.sog ?? null]);
+    if (h.length > 300) h.splice(0, h.length - 300);
+    const t = TRK.find(x => x.mmsi === s.mmsi);
+    Object.assign(t, { name: s.name || t.name, last: { ...s, seen: Date.now() } });
+  }
+}
+const MID = { 201: 'Albania', 209: 'Cyprus', 210: 'Cyprus', 211: 'Germany', 212: 'Cyprus', 215: 'Malta', 218: 'Germany', 219: 'Denmark', 220: 'Denmark', 224: 'Spain', 225: 'Spain', 226: 'France', 227: 'France', 228: 'France', 229: 'Malta', 230: 'Finland', 231: 'Faroe Is.', 232: 'UK', 233: 'UK', 234: 'UK', 235: 'UK', 236: 'Gibraltar', 237: 'Greece', 239: 'Greece', 240: 'Greece', 241: 'Greece', 244: 'Netherlands', 245: 'Netherlands', 246: 'Netherlands', 247: 'Italy', 248: 'Malta', 249: 'Malta', 250: 'Ireland', 255: 'Madeira', 256: 'Malta', 257: 'Norway', 258: 'Norway', 259: 'Norway', 261: 'Poland', 265: 'Sweden', 266: 'Sweden', 271: 'Turkey', 273: 'Russia', 275: 'Latvia', 276: 'Estonia', 277: 'Lithuania', 304: 'Antigua', 305: 'Antigua', 308: 'Bahamas', 309: 'Bahamas', 311: 'Bahamas', 312: 'Belize', 314: 'Barbados', 341: 'St Kitts', 351: 'Panama', 352: 'Panama', 353: 'Panama', 354: 'Panama', 355: 'Panama', 356: 'Panama', 357: 'Panama', 370: 'Panama', 371: 'Panama', 372: 'Panama', 373: 'Panama', 374: 'Panama', 403: 'Saudi Arabia', 412: 'China', 413: 'China', 414: 'China', 419: 'India', 422: 'Iran', 431: 'Japan', 440: 'S. Korea', 441: 'S. Korea', 457: 'Mongolia', 470: 'UAE', 471: 'UAE', 477: 'Hong Kong', 511: 'Palau', 518: 'Cook Is.', 538: 'Marshall Is.', 548: 'Philippines', 563: 'Singapore', 564: 'Singapore', 565: 'Singapore', 566: 'Singapore', 572: 'Tuvalu', 576: 'Vanuatu', 577: 'Vanuatu', 610: 'Benin', 613: 'Cameroon', 620: 'Comoros', 626: 'Gabon', 636: 'Liberia', 637: 'Liberia', 657: 'Nigeria', 667: 'Sierra Leone', 671: 'Togo', 677: 'Tanzania' };
+const flagOf = mmsi => MID[String(mmsi).slice(0, 3)] || '';
+FN.TRACK = {
+  d: 'Vessel tracking: follow specific ships, search by name', cat: 'geo',
+  r(p) {
+    p.title = 'Vessel Tracker';
+    return `<div class="bar"><span class="lbl">Find vessel</span><input class="inp" id="vq" size="18" placeholder="name, MMSI or destination"><button class="btn" id="vg">SEARCH</button><span class="lbl cov"></span></div><div class="pad srch"></div><div class="h pad">TRACKED VESSELS</div><div class="res"></div>`;
+  },
+  m(p, el) {
+    const row = (s, tracked) => { const [cn, cc] = shipCat(s.type); return `<tr><td class="l amb">${esc(s.name || '—')}</td><td class="l dim">${s.mmsi}</td><td class="l"><span style="color:${cc}">●</span> ${cn}</td><td class="l dim">${esc(flagOf(s.mmsi))}</td><td>${s.lat != null ? nf(s.lat, 3) + ', ' + nf(s.lon, 3) : '—'}</td><td>${ok(s.sog) ? nf(s.sog, 1) : '—'}</td><td>${ok(s.cog) ? nf(s.cog, 0) + '°' : '—'}</td><td>${s.draught ? nf(s.draught, 1) : '—'}</td><td class="l">${esc(s.dest || '')}</td><td class="l dim">${SHIP_NAV[s.nav] || ''}</td><td class="l">${tracked ? `<button class="btn" data-map="${s.mmsi}">MAP</button> <button class="btn" data-untrack="${s.mmsi}">✕</button>` : `<button class="btn buy" data-track="${s.mmsi}">TRACK</button>`}</td></tr>`; };
+    const head = '<table><thead><tr><th class="l">Vessel</th><th class="l">MMSI</th><th class="l">Type</th><th class="l">Flag</th><th>Position</th><th>Speed kn</th><th>Course</th><th>Draught m</th><th class="l">Destination</th><th class="l">Status</th><th></th></tr></thead><tbody>';
+    let found = [];
+    const draw = () => {
+      $('.res', el).innerHTML = TRK.length ? head + TRK.map(t => { const s = t.last || { mmsi: t.mmsi, name: t.name }; return row(s, true) + `<tr><td colspan="11" class="l dim" style="font-size:10px">last seen ${t.last?.seen ? new Date(t.last.seen).toLocaleString() : 'not yet'} · ${(TRK_HIST[t.mmsi] || []).length} trail points</td></tr>`; }).join('') + '</tbody></table>'
+        : '<div class="empty">No vessels tracked yet. Search above, or click a ship on the SHIP / TANK maps and press TRACK.</div>';
+    };
+    const refresh = () => {
+      if (!TRK.length) return draw();
+      api('vessels?mmsi=' + TRK.map(t => t.mmsi).join(',')).then(d => { recordTrail(d.ships); saveTrk(); $('.cov', el).textContent = `${d.src} · coverage: ${d.coverage}`; if (p.alive(el)) draw(); }).catch(e => p.msg(e.message));
+    };
+    const search = () => {
+      const q = $('#vq', el).value.trim();
+      if (!q) return;
+      $('.srch', el).innerHTML = '<div class="spin"></div>';
+      api('vsearch?q=' + encodeURIComponent(q)).then(d => { found = d.ships; $('.srch', el).innerHTML = found.length ? `<div class="dim" style="margin-bottom:4px">${found.length} live matches · ${esc(d.src)} (${esc(d.coverage)})</div>` + head + found.map(s => row(s, false)).join('') + '</tbody></table>' : `<div class="dim">No live vessel matches in the ${esc(d.coverage)} feed.</div>`; }).catch(e => fail(el, e, '.srch'));
+    };
+    $('#vg', el).onclick = search;
+    $('#vq', el).onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') search(); };
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-track],[data-untrack],[data-map]');
+      if (!b) return;
+      if (b.dataset.track) { const s = found.find(x => String(x.mmsi) === b.dataset.track); if (s) { trackVessel(s); p.msg(`Tracking ${s.name || s.mmsi}`, true); draw(); } }
+      if (b.dataset.untrack) { TRK = TRK.filter(t => String(t.mmsi) !== b.dataset.untrack); delete TRK_HIST[b.dataset.untrack]; saveTrk(); draw(); }
+      if (b.dataset.map) { const t = TRK.find(x => String(x.mmsi) === b.dataset.map); if (t?.last) p.go('BMAP', null, { c: [t.last.lat, t.last.lon], z: 10, layers: ['ships', 'lanes', 'energy'], base: 'dark' }); }
+    });
+    draw(); refresh();
+    let n = 0; p.tick = () => { if (++n % 12 === 0) refresh(); };
+  },
+};
+
+// ---------------------------------------------------------------- TANK: Baltic tanker flow (Russian export ports)
+const RU_PORT = /\bRU\s*-?\s*(ULU|PRI|LED|VYS|KGD|STP)\b|UST.?LUGA|PRIMORSK|VYSOTSK|ST\.?\s*PETERSBURG|\bSPB|SANKT|KALININGRAD|\bRUS\b/i;
+FN.TANK = {
+  d: 'Baltic tanker flow: tankers at Russian export ports (live AIS)', cat: 'geo',
+  r(p) {
+    p.title = 'Baltic Tanker Flow — Russian Crude & Product Exports';
+    return '<div class="pad"><div class="kpis tk"><div class="empty spin"></div></div><div class="res" style="margin-top:10px"></div></div>';
+  },
+  m(p, el) {
+    const load = () => api('ships?s=53.5&w=9.5&n=61&e=30.5').then(d => {
+      if (!p.alive(el)) return;
+      const t = d.ships.filter(s => s.type >= 80 && s.type <= 89).map(s => {
+        const ru = RU_PORT.test(s.dest || '');
+        const moving = (s.sog || 0) > 3, west = moving && s.cog >= 180 && s.cog <= 330, east = moving && (s.cog <= 140 || s.cog >= 340);
+        const laden = (s.draught || 0) >= 11;
+        const nearRu = s.lon > 27.3 && s.lat > 59.3;
+        return { ...s, ru, west, east, laden, nearRu, forOrders: /ORDER/i.test(s.dest || '') };
+      });
+      recordTrail(t); saveTrk();
+      const n = f => t.filter(f).length;
+      const exportsOut = t.filter(s => s.west && s.laden);
+      const kp = [['Tankers in the Baltic', t.length, 'live AIS positions'], ['Bound for Russian ports', n(s => s.ru), 'Ust-Luga, Primorsk, St Petersburg, Vysotsk…'], ['At/near Russian terminals', n(s => s.nearRu), 'east of 27.3°E in the Gulf of Finland'],
+        ['Westbound, deep draught', exportsOut.length, 'likely laden (≥11 m), heading out'], ['Westbound "for orders"', n(s => s.west && s.forOrders), 'destination not declared'], ['Inbound to Gulf of Finland', n(s => s.east && s.lon > 21), 'eastbound, moving']];
+      $('.tk', el).innerHTML = kp.map(([a, b, c]) => `<div class="kpi"><div class="dim">${a}</div><div class="big">${b}</div><div class="dim">${c}</div></div>`).join('');
+      const list = t.sort((a, b) => (b.ru + b.nearRu + b.west * b.laden) - (a.ru + a.nearRu + a.west * a.laden) || (b.draught || 0) - (a.draught || 0));
+      $('.res', el).innerHTML = `<div class="dim" style="margin-bottom:6px">${esc(d.src)} · coverage: ${esc(d.coverage)} · ${new Date().toLocaleTimeString()} · Draught near the vessel's maximum usually means loaded; most Russian seaborne crude from the Baltic leaves via Primorsk and Ust-Luga.</div>
+        <table><thead><tr><th class="l">Tanker</th><th class="l">Flag</th><th class="l">Destination</th><th>Draught m</th><th class="l">Load</th><th>Speed kn</th><th>Course</th><th class="l">Heading</th><th class="l">Status</th><th>Position</th><th></th></tr></thead><tbody>` +
+        list.map(s => `<tr><td class="l amb">${esc(s.name || s.mmsi)}</td><td class="l dim">${esc(flagOf(s.mmsi))}</td><td class="l ${s.ru ? 'yel' : ''}">${esc(s.dest || '—')}${s.ru ? ' 🇷🇺' : ''}</td><td>${s.draught ? nf(s.draught, 1) : '—'}</td><td class="l ${s.laden ? 'up' : 'dim'}">${s.draught ? (s.laden ? 'laden?' : 'ballast?') : ''}</td><td>${ok(s.sog) ? nf(s.sog, 1) : '—'}</td><td>${ok(s.cog) ? nf(s.cog, 0) + '°' : ''}</td><td class="l">${s.west ? '← west (out)' : s.east ? '→ east (in)' : '<span class="dim">stationary</span>'}</td><td class="l dim">${SHIP_NAV[s.nav] || ''}</td><td class="dim">${nf(s.lat, 2)}, ${nf(s.lon, 2)}</td><td><button class="btn" data-trk="${s.mmsi}">TRACK</button></td></tr>`).join('') + '</tbody></table>';
+      $$('[data-trk]', el).forEach(b => b.onclick = () => { const s = t.find(x => String(x.mmsi) === b.dataset.trk); trackVessel(s); p.msg(`Tracking ${s.name || s.mmsi} — see TRACK`, true); });
+    }).catch(e => p.alive(el) && fail(el, e, '.tk'));
+    load();
+    let n = 0; p.tick = () => { if (++n % 12 === 0) load(); };
+  },
+};
+
+// ---------------------------------------------------------------- EDGE: everything on one screen
+FN.EDGE = {
+  d: 'Edge dashboard: insider buys, unusual options, Fed odds, sentiment, catalysts', cat: 'edge',
+  r(p) {
+    p.title = 'Edge Dashboard';
+    const b = (k, t, cmd) => `<div class="box"><div class="t">${t}${cmd ? ` <a class="dim" data-cmd="${cmd}" style="cursor:pointer;float:right">${cmd} ›</a>` : ''}</div><div class="e-${k}"><div class="spin"></div></div></div>`;
+    return `<div class="pad"><div class="cols3">${b('fng', 'Sentiment', 'SENT')}${b('fed', 'Fed Odds (futures + markets)', 'WIRP')}${b('cat', 'Catalysts Today', 'ECO')}</div>
+      <div class="cols" style="margin-top:10px">${b('ins', 'Insider Cluster Buys', 'INSB CLUSTER')}${b('uoa', 'Unusual Options Activity', 'UOA')}</div>
+      <div class="cols" style="margin-top:10px">${b('red', 'Reddit Momentum', 'SENT')}${b('pred', 'Macro Prediction Markets', 'PRED')}</div>
+      <div class="cols" style="margin-top:10px">${b('cong', 'Latest Congress Trade Reports', 'CONG')}${b('tank', 'Baltic Tanker Flow', 'TANK')}</div></div>`;
+  },
+  m(p, el) {
+    const put = (k, h) => { const x = $('.e-' + k, el); if (x && p.alive(el)) x.innerHTML = h; };
+    const err = k => e => put(k, `<span class="dn">${esc(e.message)}</span>`);
+    cachedApi('sent', 300e3, 'sentiment').then(s => {
+      const f = s.fng;
+      put('fng', (f ? `<div style="display:flex;gap:12px;align-items:baseline"><span class="big">${nf(f.score, 0)}</span><span class="${f.score < 45 ? 'dn' : f.score > 55 ? 'up' : 'yel'}" style="text-transform:uppercase">${esc(f.rating)}</span></div><div class="fgbar"><i style="left:${f.score}%"></i></div>` : '') + kv([['VIX', `${L('^VIX', 'price')} ${L('^VIX', 'pct')}`], ['1 week ago (F&G)', f ? nf(f.w1, 0) : '—'], ['S&P 500', `${L('^GSPC', 'price')} ${L('^GSPC', 'pct')}`]]));
+      const movers = s.reddit.filter(r => r.mentions24).map(r => ({ ...r, g: r.mentions / r.mentions24 })).filter(r => r.mentions >= 10).sort((a, b) => b.g - a.g).slice(0, 8);
+      subscribe(p, movers.map(r => r.sym));
+      put('red', `<table><tbody>${movers.map(r => `<tr class="clk" data-cmd="${esc(r.sym)} DES"><td class="l amb">${esc(r.sym)}</td><td class="l name dim">${esc(unent(r.name))}</td><td>${r.mentions} mentions</td><td class="up">${pc((r.g - 1) * 100, 0)}</td><td>${L(r.sym, 'pct')}</td></tr>`).join('')}</tbody></table>`);
+    }).catch(e => { err('fng')(e); err('red')(e); });
+    subscribe(p, ['^VIX', '^GSPC']);
+    cachedApi('oi:cluster', 300e3, 'openinsider?kind=cluster').then(d => {
+      const rows = d.rows.slice(0, 10);
+      subscribe(p, rows.map(r => r.sym));
+      put('ins', `<table><thead><tr><th class="l">Ticker</th><th class="l">Company</th><th># Ins.</th><th>Value</th><th>Since</th><th class="l">Filed</th></tr></thead><tbody>${rows.map(r => `<tr class="clk" data-cmd="${esc(r.sym)} INSD"><td class="l amb">${esc(r.sym)}</td><td class="l name">${esc(r.company)}</td><td class="up">${r.insiders ?? ''}</td><td class="up">${money(r.value)}</td>${sinceCell(r.sym, r.price)}<td class="l dim">${ago2(r.filed)}</td></tr>`).join('')}</tbody></table>`);
+    }).catch(err('ins'));
+    cachedApi('uoa:', 170e3, 'uoa').then(d => {
+      put('uoa', `${d.live ? '' : '<div class="yel" style="margin-bottom:4px">Last session (market closed)</div>'}<table><thead><tr><th class="l">Ticker</th><th class="l">Side</th><th>Strike</th><th class="l">Exp</th><th>Vol</th><th>Vol/OI</th><th>Premium</th></tr></thead><tbody>${d.rows.slice(0, 10).map(r => `<tr class="clk" data-cmd="${esc(r.sym)} OMON"><td class="l amb">${esc(r.sym)}</td><td class="l ${r.side === 'C' ? 'up' : 'dn'}">${r.side === 'C' ? 'CALL' : 'PUT'}</td><td>${nf(r.k, 1)}</td><td class="l dim">${new Date(r.exp * 1000).toISOString().slice(5, 10)}</td><td>${big(r.vol)}</td><td class="yel">${r.oi ? nf(r.vol / r.oi, 1) + '×' : '—'}</td><td class="${r.side === 'C' ? 'up' : 'dn'}">${money(r.prem)}</td></tr>`).join('')}</tbody></table>`);
+    }).catch(err('uoa'));
+    cachedApi('pred', 120e3, 'predict').then(d => {
+      const ev = d.events.filter(e => PRED_TABS[0][1].test(e.title) && !/ vs\.? /i.test(e.title)).sort((a, b) => b.vol24 - a.vol24);
+      const fed = ev.find(e => /fed/i.test(e.title));
+      if (fed) put('fed', `<div class="dim" style="margin-bottom:4px">${esc(fed.src)}: ${esc(unent(fed.title))}</div>${fed.outcomes.slice(0, 4).map(o => `<div class="po"><span class="pn">${esc(unent(o.name))}</span><span class="pb"><i style="width:${(o.p * 100).toFixed(1)}%"></i></span><b>${nf(o.p * 100, 0)}%</b></div>`).join('')}<div class="dim" style="margin-top:6px">Open WIRP for the futures-implied path.</div>`);
+      else put('fed', '<div class="dim">Open WIRP for fed funds futures pricing.</div>');
+      put('pred', ev.slice(0, 6).map(e => `<a class="pr1" href="${esc(e.url)}" target="_blank" rel="noopener noreferrer"><span class="name">${esc(unent(e.title))}</span><b class="amb">${esc(unent(e.outcomes[0].name)).slice(0, 22)} ${nf(e.outcomes[0].p * 100, 0)}%</b></a>`).join('') || '<div class="dim">No macro markets right now.</div>');
+    }).catch(e => { err('pred')(e); err('fed')(e); });
+    cachedApi('eco', 900e3, 'ecocal').then(d => {
+      const today = new Date().toDateString();
+      const ev = d.events.filter(e => new Date(e.date).toDateString() === today && ['High', 'Medium'].includes(e.impact));
+      const er = cachedApi('earn:' + new Date().toISOString().slice(0, 10), 1800e3, 'earnings?date=' + new Date().toISOString().slice(0, 10)).catch(() => ({ rows: [] }));
+      er.then(r => {
+        const big5 = (r.rows || []).sort((a, b) => (Number(String(b.mcap).replace(/[$,]/g, '')) || 0) - (Number(String(a.mcap).replace(/[$,]/g, '')) || 0)).slice(0, 6);
+        put('cat', (ev.length ? ev.map(e => { const t = new Date(e.date); return `<div><span class="dim">${pad2(t.getHours())}:${pad2(t.getMinutes())}</span> <span class="amb">${esc(e.country)}</span> <span class="${e.impact === 'High' ? 'dn' : 'yel'}">●</span> ${esc(e.title)} <span class="dim">f ${esc(e.forecast || '—')} · p ${esc(e.previous || '—')}</span></div>`; }).join('') : '<div class="dim">No high-impact releases today.</div>') +
+          (big5.length ? `<div class="dim" style="margin-top:6px">Earnings today: ${big5.map(x => `<a class="amb" data-cmd="${esc(x.sym)} OMON" style="cursor:pointer">${esc(x.sym)}</a>`).join(' · ')}</div>` : ''));
+      });
+    }).catch(err('cat'));
+    cachedApi('house', 3600e3, 'congress').then(d => put('cong', `<table><tbody>${d.rows.slice(0, 8).map(r => `<tr><td class="l dim">${r.date}</td><td class="l amb">${esc(r.name)}</td><td class="l">${esc(r.district)}</td><td class="l"><a class="blu" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">PDF ↗</a></td></tr>`).join('')}</tbody></table>`)).catch(err('cong'));
+    api('ships?s=53.5&w=9.5&n=61&e=30.5').then(d => {
+      const t = d.ships.filter(s => s.type >= 80 && s.type <= 89);
+      put('tank', kv([['Tankers in the Baltic (live)', t.length], ['Bound for Russian ports', t.filter(s => RU_PORT.test(s.dest || '')).length], ['Westbound, deep draught (≥11 m)', t.filter(s => (s.sog || 0) > 3 && s.cog >= 180 && s.cog <= 330 && (s.draught || 0) >= 11).length], ['Source', esc(d.src)]]));
+    }).catch(err('tank'));
+  },
+};
+/* =====================================================================
    Panels
    ===================================================================== */
 const PANELS = [];
 let active = 0;
-const DEFAULTS = [{ fn: 'WEI' }, { fn: 'TOP' }, { fn: 'GP', sec: '^GSPC' }, { fn: 'MOST' }];
+const DEFAULTS = [{ fn: 'EDGE' }, { fn: 'WEI' }, { fn: 'GP', sec: '^GSPC' }, { fn: 'INSB' }];
 class Panel {
   constructor(i) {
     this.i = i; this.hist = []; this.syms = []; this.seq = 0; this.cmdHist = store.get('ch' + i, []); this.chi = -1;
@@ -2121,7 +2787,7 @@ function pressKey(label) {
   p.inp.value = p.inp.value.trim() + ' ' + yk + ' ';
   p.inp.focus();
 }
-const LAUNCH = ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'GC', 'OIL', 'BMAP', 'FLT', 'SHIP', 'SAT', 'TOP', 'PORT', 'HELP'];
+const LAUNCH = ['EDGE', 'WEI', 'MOST', 'INSB', 'UOA', 'WIRP', 'PRED', 'SENT', 'ECO', 'OIL', 'SHIP', 'TANK', 'TOP', 'HELP'];
 function buildChrome() {
   $('#launch').innerHTML = LAUNCH.map(f => `<button data-f="${f}" title="${esc(FN[f].d)}">${f}</button>`).join('');
   $('#launch').onclick = e => { const b = e.target.closest('[data-f]'); if (b) PANELS[active].run(b.dataset.f); };
