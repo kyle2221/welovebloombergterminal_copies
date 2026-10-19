@@ -1158,7 +1158,7 @@ FN.CN = {
   m(p, el, y) {
     loading(el, '.res');
     const nm = nameOf(y) === y ? '' : nameOf(y);
-    cachedApi('cnr:' + y, 60e3, `news?q=${encodeURIComponent(y)}&name=${encodeURIComponent(nm)}${isEquity(y) ? '&reddit=1' : ''}`)
+    cachedApi('cnr:' + y, 60e3, `news?q=${encodeURIComponent(y)}&co=${encodeURIComponent(nm)}${isEquity(y) ? '&reddit=1' : ''}`)
       .then(items => p.alive(el) && mountNews(p, el, items))
       .catch(e => p.alive(el) && fail(el, e, '.res'));
   },
@@ -1714,7 +1714,7 @@ FN.BUZZ = {
     });
     cachedApi('rs:' + t, 300e3, 'rsearch?q=' + encodeURIComponent(t)).then(d => p.alive(el) && ($('.b-posts', el).innerHTML = rdPosts(d.posts, 30) + srcNote(d)))
       .catch(e => p.alive(el) && fail(el, e, '.b-posts'));
-    cachedApi('cn:' + y, 60e3, `news?q=${encodeURIComponent(y)}&name=${encodeURIComponent(nameOf(y) === y ? '' : nameOf(y))}`).then(items => p.alive(el) && ($('.b-news', el).innerHTML = newsList(items.slice(0, 40), false)))
+    cachedApi('cn:' + y, 60e3, `news?q=${encodeURIComponent(y)}&co=${encodeURIComponent(nameOf(y) === y ? '' : nameOf(y))}`).then(items => p.alive(el) && ($('.b-news', el).innerHTML = newsList(items.slice(0, 40), false)))
       .catch(e => p.alive(el) && fail(el, e, '.b-news'));
   },
 };
