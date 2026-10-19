@@ -2547,8 +2547,8 @@ FN.EDGE = {
     }).catch(err('uoa'));
     cachedApi('pred', 120e3, 'predict').then(d => {
       const ev = d.events.filter(e => PRED_TABS[0][1].test(e.title) && !/ vs\.? /i.test(e.title)).sort((a, b) => b.vol24 - a.vol24);
-      const fed = ev.find(e => /fed/i.test(e.title));
-      if (fed) put('fed', `<div class="dim" style="margin-bottom:4px">${esc(fed.src)}: ${esc(unent(fed.title))}</div>${fed.outcomes.slice(0, 4).map(o => `<div class="po"><span class="pn">${esc(unent(o.name))}</span><span class="pb"><i style="width:${(o.p * 100).toFixed(1)}%"></i></span><b>${nf(o.p * 100, 0)}%</b></div>`).join('')}<div class="dim" style="margin-top:6px">Open WIRP for the futures-implied path.</div>`);
+      const feds = ev.filter(e => /fed decision|fomc/i.test(e.title)).sort((a, b) => (a.end || '9') < (b.end || '9') ? -1 : 1).slice(0, 2);
+      if (feds.length) put('fed', feds.map(fed => `<div class="dim" style="margin:2px 0 4px">${esc(fed.src)}: ${esc(unent(fed.title))}</div>${fed.outcomes.slice(0, 3).map(o => `<div class="po"><span class="pn">${esc(unent(o.name))}</span><span class="pb"><i style="width:${(o.p * 100).toFixed(1)}%"></i></span><b>${nf(o.p * 100, 0)}%</b></div>`).join('')}`).join('') + '<div class="dim" style="margin-top:6px">Open WIRP for the fed funds futures path.</div>');
       else put('fed', '<div class="dim">Open WIRP for fed funds futures pricing.</div>');
       put('pred', ev.slice(0, 6).map(e => `<a class="pr1" href="${esc(e.url)}" target="_blank" rel="noopener noreferrer"><span class="name">${esc(unent(e.title))}</span><b class="amb">${esc(unent(e.outcomes[0].name)).slice(0, 22)} ${nf(e.outcomes[0].p * 100, 0)}%</b></a>`).join('') || '<div class="dim">No macro markets right now.</div>');
     }).catch(e => { err('pred')(e); err('fed')(e); });

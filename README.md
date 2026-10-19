@@ -26,12 +26,22 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | Satellite imagery | Esri World Imagery (high-res), NASA GIBS MODIS daily & VIIRS night lights |
 | US crude, SPR & Cushing inventories | EIA API (free key) |
 | Oil futures curves | Yahoo Finance (NYMEX WTI & Brent contracts) |
+| Insider trades (Form 4) | Yahoo Finance (per company), OpenInsider (market-wide feed); direct SEC EDGAR when `SEC_USER_AGENT` is set |
+| Congressional trades | U.S. House Clerk periodic transaction reports (PDFs parsed for tickers and amounts) |
+| Options chains & unusual activity | Yahoo Finance |
+| Short volume / short interest | FINRA Reg SHO daily files, Yahoo Finance |
+| Fed funds futures | Yahoo Finance (CBOT 30-day fed funds, `ZQ`) |
+| Macro | U.S. Bureau of Labor Statistics, Federal Reserve Bank of New York (EFFR, SOFR) |
+| Prediction markets | Polymarket, Kalshi |
+| Sentiment | CNN Fear & Greed, ApeWisdom (Reddit mentions) |
+| Calendars | ForexFactory (economic), Nasdaq (earnings) |
 
 ### Optional API keys
 
-Two free keys unlock extra data. Put them in a `.env` file for local use (see `.env.example`), or add them as Vercel environment variables:
+Optional settings unlock extra data. Put them in a `.env` file for local use (see `.env.example`), or add them as Vercel environment variables:
 
 - `AISSTREAM_API_KEY` from [aisstream.io](https://aisstream.io) turns on worldwide ship tracking. Without it, ships are limited to the Baltic Sea.
+- `SEC_USER_AGENT`, e.g. `Your Name you@example.com`. The SEC asks automated clients to include a contact email. When set, insider data also comes straight from EDGAR.
 - `EIA_API_KEY` from [eia.gov/opendata](https://www.eia.gov/opendata/register.php) turns on the weekly US crude, SPR, Cushing, gasoline and distillate inventories in `OIL`.
 
 ### Deploy on Vercel
@@ -80,6 +90,17 @@ N FED                   news search
 | `FLT`, `SHIP`, `MIL` | The map preset for live flights, live ships and tankers (with a tanker/cargo filter), or military sites. Add a region: `SHIP HORMUZ`, `FLT LONDON` |
 | `SAT` | Satellite imagery watchlist: mall and factory parking lots, aircraft storage, tank farms, ports |
 | `OIL` | Oil monitor: WTI/Brent futures curves, US inventories and SPR, proved reserves, chokepoints, energy stocks |
+| `EDGE` | One-screen dashboard: sentiment, Fed odds, today's catalysts, insider cluster buys, unusual options, Reddit momentum, prediction markets, congress filings, Baltic tankers |
+| `INSD`, `INSB` | Insider trades for a company (with buy/sell markers on the chart), or the market-wide feed of insider buys, cluster buys, officer buys and big sales |
+| `CONG` | Stock trades disclosed by members of the House, with tickers and amounts extracted from the filings |
+| `HDS` | Institutional, fund and insider holders |
+| `OMON`, `UOA` | Options chain with put/call ratio, max pain and implied move; scan for unusual options activity |
+| `SI`, `SHRT` | Short interest and daily FINRA short volume for a stock; market-wide short-volume leaders |
+| `WIRP` | Fed funds futures: implied rate path and odds for each FOMC meeting |
+| `ECST` | Macro dashboard: CPI, core CPI, jobs, wages, JOLTS, EFFR/SOFR, yield curve, risk gauges |
+| `PRED`, `SENT` | Prediction-market odds (macro, politics, geopolitics, crypto); Fear & Greed and Reddit trending tickers |
+| `ECO`, `EARN` | This week's economic calendar; earnings calendar by date |
+| `TRACK`, `TANK` | Follow specific ships (search, trails); Baltic tanker flow at Russian export ports |
 | `W` | Watchlist |
 | `PORT` | Paper portfolio: P&L, positions, blotter ($1M starting cash) |
 | `SECF`, `HELP`, `MENU` | Search, function directory, back |
