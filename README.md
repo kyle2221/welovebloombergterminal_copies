@@ -16,10 +16,13 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | Data | Source |
 |---|---|
 | Quotes, charts, dividends/splits, search, screeners | Yahoo Finance (exchange delays apply) |
-| Company profile, valuation, analyst ratings & targets | Yahoo Finance quoteSummary |
-| Income statement / cash flow / balance sheet | Yahoo Finance fundamentals time series |
+| Interactive charts with indicators and drawing tools | TradingView embedded chart and technical-analysis widgets (loaded in your browser) |
+| Company profile, valuation, key statistics, analyst ratings & targets | Yahoo Finance quoteSummary |
+| Income statement, balance sheet, cash flow (annual, quarterly, trailing 12 months) | Yahoo Finance fundamentals time series |
+| Earnings & revenue estimates, EPS trend and revisions, earnings history, SEC filings | Yahoo Finance analysis |
 | US yield curve | U.S. Treasury daily par yield curve |
-| Top news | Yahoo Finance, CNBC, MarketWatch, Federal Reserve and SEC RSS feeds |
+| Top news | RSS feeds from Yahoo Finance, CNBC, MarketWatch, WSJ, Bloomberg, FT, Seeking Alpha, Investing.com, Nasdaq, Benzinga, The Economist, CoinDesk, the Federal Reserve, SEC and ECB, plus Google News (which adds Reuters, AP, Barron's and hundreds of other publishers) |
+| Reddit | r/wallstreetbets and other finance subreddits: posts, daily-thread comments and search. Reddit's JSON API blocks cloud servers, so the RSS feeds are used unless you add a Reddit app key (then upvote and comment counts appear too) |
 | Live flights (ADS-B) | adsb.lol, falling back to airplanes.live, then OpenSky Network |
 | Aircraft lookup, military & emergency traffic, business jets, cargo hubs | adsb.lol and airplanes.live; flight routes from the adsb.lol route database; photos from planespotters.net |
 | Live ships & tankers (AIS) | aisstream.io (global, free key) or Fintraffic Digitraffic (Baltic, no key) |
@@ -34,7 +37,7 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | Fed funds futures | Yahoo Finance (CBOT 30-day fed funds, `ZQ`) |
 | Macro | U.S. Bureau of Labor Statistics, Federal Reserve Bank of New York (EFFR, SOFR) |
 | Prediction markets | Polymarket, Kalshi |
-| Sentiment | CNN Fear & Greed, ApeWisdom (Reddit mentions) |
+| Sentiment | CNN Fear & Greed, ApeWisdom (Reddit and WallStreetBets mention leaderboards), Tradestie (WallStreetBets comment sentiment) |
 | Calendars | ForexFactory (economic), Nasdaq (earnings) |
 
 ### Optional API keys
@@ -43,6 +46,7 @@ Optional settings unlock extra data. Put them in a `.env` file for local use (se
 
 - `AISSTREAM_API_KEY` from [aisstream.io](https://aisstream.io) turns on worldwide ship tracking. Without it, ships are limited to the Baltic Sea.
 - `SEC_USER_AGENT`, e.g. `Your Name you@example.com`. The SEC asks automated clients to include a contact email. When set, insider data also comes straight from EDGAR.
+- `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` from a "script" app at [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps) add upvote and comment counts to the Reddit screens, and score-ranked daily-thread comments.
 - `EIA_API_KEY` from [eia.gov/opendata](https://www.eia.gov/opendata/register.php) turns on the weekly US crude, SPR, Cushing, gasoline and distillate inventories in `OIL`.
 
 ### Deploy on Vercel
@@ -78,12 +82,16 @@ N FED                   news search
 | `GLCO` | Commodities (energy, metals, ags) |
 | `CRYP` | Crypto monitor |
 | `GC` / `WB` | US Treasury curve: now vs 1M and 1Y ago, spreads, live benchmarks |
-| `TOP`, `N`, `CN` | Top news, news search, company news |
+| `TOP`, `N`, `CN` | News from every source, filterable by publisher: top stories, search (`N FED`), and company news (`AAPL CN`) that also includes Reddit posts |
+| `WSB` | What r/wallstreetbets is talking about: most-mentioned tickers with bullish/bearish tone, the 24h leaderboard, comment sentiment, trending words, the daily discussion thread and hot posts |
+| `REDDIT`, `BUZZ` | Finance subreddits (`REDDIT OPTIONS`, `REDDIT STOCKS`) or a Reddit search (`REDDIT NVDA`); `BUZZ` is one security's social picture: WSB rank, sentiment, Reddit posts and news from every source |
 | `DES` | Description: price stats, valuation, profile, officers, 1Y chart |
+| `TV` | TradingView chart with TradingView's data, 1-minute to monthly bars, indicators, drawing tools and a technical-analysis gauge |
 | `GP`, `GIP` | Price graph (1D to MAX, line/candle, 50/200 SMA, volume, crosshair) and intraday graph |
 | `HP` | Historical prices (daily/weekly/monthly, CSV export) |
 | `Q` | Quote, bid/ask, ranges, polled price log, trade ticket |
-| `FA` | Financial statements, margins, growth |
+| `FA` | Yahoo Finance financials: full income statement, balance sheet and cash flow (annual, quarterly, TTM), ratios, key statistics, estimates and SEC filings |
+| `EE`, `CF` | Earnings estimates, EPS revisions and beat/miss history; SEC filings |
 | `ANR` | Analyst consensus, targets, rating changes |
 | `DVD` | Dividend and split history |
 | `COMP` | Normalized multi-security return chart |

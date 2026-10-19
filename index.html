@@ -251,6 +251,38 @@ tr.selrow td{background:rgba(255,166,43,.1)!important}
   .bt .edcol{border-right:0;overflow:visible}.bt .rescol{overflow:visible}
   .ed{height:340px;flex:none}
 }
+/* ---------- TradingView, news sources, Reddit ---------- */
+.tvwrap{flex:1;min-height:0;display:grid;grid-template-columns:1fr}
+.tvwrap.withta{grid-template-columns:1fr 300px}
+.tvchart,.tvta{min-height:0;height:100%}.tvta{border-left:1px solid var(--line)}
+@container (max-width:760px){.tvwrap.withta{grid-template-columns:1fr}.tvta{display:none}}
+.gp{container-type:inline-size}
+.news-row .src{width:104px;min-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.news-row .src.rd{background:rgba(255,87,0,.16);color:#ff8a4c}
+.srcbar:empty{display:none}
+.rpost{display:flex;gap:10px;padding:7px 2px;border-bottom:1px solid #12151b}
+.rpost.pin{background:rgba(255,166,43,.05)}
+.rmeta{flex:0 0 74px;display:flex;flex-direction:column;gap:1px;font-size:11px;text-align:right}
+.rbody{flex:1;min-width:0}
+.rbody a{color:var(--txt);font-weight:500}.rbody a:hover{color:var(--amber)}
+.rtext{color:var(--dim);font-size:11px;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rfoot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px;font-size:11px}
+.flair{display:inline-block;font-size:10px;padding:0 6px;margin-right:6px;border-radius:9px;background:rgba(90,169,255,.14);color:var(--blue);vertical-align:1px}
+.tk{display:inline-block;font-size:10px;font-weight:700;padding:0 5px;border-radius:3px;background:rgba(255,166,43,.14);color:var(--amber);cursor:pointer}
+.tk:hover{background:var(--amber);color:#000}
+.tone{display:inline-flex;width:70px;height:7px;border-radius:4px;overflow:hidden;background:#1b2029;vertical-align:middle}
+.tone .b{background:var(--up)}.tone .s{background:var(--dn)}
+.cloud{line-height:1.9;text-align:center;padding:4px}
+.cloud span{display:inline-block;margin:0 6px;cursor:pointer;font-weight:600;transition:color .12s}
+.cloud span:hover{color:#fff!important;text-decoration:underline}
+.dlist{max-height:520px;overflow:auto}
+.dcom{padding:5px 0;border-bottom:1px solid #12151b;white-space:pre-wrap;word-break:break-word}
+.dcom>.dim{font-size:10px}
+table.fa tr.b td{font-weight:700;color:#fff}
+table.fa td:first-child{white-space:nowrap}
+.mbars{vertical-align:middle}
+.cols.wide{grid-template-columns:repeat(auto-fit,minmax(440px,1fr))}
+.cols.wide .box{overflow-x:auto}
 /* ---------- edge widgets ---------- */
 .cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
@@ -801,8 +833,8 @@ const secRow = (p, y, n, cells) => `<tr class="clk" data-cmd="${esc(disp(y))} ${
 // ---------------------------------------------------------------- HELP
 const HELP_GROUPS = [
   ['Market Monitors', ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'CRYP', 'GC', 'EQS']],
-  ['News', ['TOP', 'N', 'CN']],
-  ['Security Analysis', ['DES', 'GP', 'GIP', 'HP', 'Q', 'FA', 'ANR', 'DVD', 'COMP']],
+  ['News & Social', ['TOP', 'N', 'CN', 'WSB', 'REDDIT', 'BUZZ']],
+  ['Security Analysis', ['DES', 'TV', 'GP', 'GIP', 'HP', 'Q', 'FA', 'EE', 'ANR', 'CF', 'DVD', 'COMP']],
   ['Edge: Insiders, Flow & Positioning', ['EDGE', 'INSB', 'INSD', 'CONG', 'HDS', 'OMON', 'UOA', 'SI', 'SHRT']],
   ['Macro, Events & Sentiment', ['WIRP', 'ECST', 'PRED', 'SENT', 'ECO', 'EARN']],
   ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'FTRK', 'SHIP', 'TRACK', 'TANK', 'SAT', 'OIL', 'MIL']],
@@ -1083,21 +1115,16 @@ FN.WB = { ...FN.GC, d: 'US government bond yields (alias of GC)' };
 let NEWS_SEEN = store.get('seen', 0);
 function newsList(items, withDesc) {
   if (!items.length) return '<div class="empty">No stories.</div>';
-  return items.map(n => `<a class="news-row ${n.t > NEWS_SEEN ? 'fresh' : ''}" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer"><span class="tm">${ago(n.t)}</span><span class="src">${esc((n.src || '').slice(0, 7))}</span><span class="hl">${esc(n.title)}${withDesc && n.desc ? `<small>${esc(n.desc)}</small>` : ''}</span></a>`).join('');
+  return items.map(n => `<a class="news-row ${n.t > NEWS_SEEN ? 'fresh' : ''}" href="${esc(/^https?:\/\//i.test(n.link || '') ? n.link : '#')}" target="_blank" rel="noopener noreferrer"><span class="tm">${ago(n.t)}</span><span class="src ${n.social ? 'rd' : ''}" title="${esc(n.src || '')}">${esc((n.src || '').slice(0, 14))}</span><span class="hl">${esc(n.title)}${(withDesc || n.social) && n.desc ? `<small>${esc(n.desc)}</small>` : ''}</span></a>`).join('');
 }
 FN.TOP = {
-  d: 'Top news headlines', cat: 'news',
-  r(p, y, arg) {
-    const srcs = ['ALL', 'YAHOO', 'CNBC', 'MW', 'FED', 'SEC'];
-    p.title = 'Top News';
-    return `<div class="bar">${srcs.map(s => `<button class="tab ${(arg || 'ALL') === s ? 'on' : ''}" data-go="TOP|${s}">${s}</button>`).join('')}<span class="lbl">auto-refresh 60s · click to open story</span></div><div class="res"></div>`;
-  },
-  m(p, el, y, arg) {
+  d: 'Top news from every source: WSJ, Bloomberg, Reuters, CNBC, FT, Google News… plus r/wallstreetbets', cat: 'news',
+  r(p) { p.title = 'Top News — All Sources'; return `<div class="bar srcbar"><span class="spin"></span></div><div class="res"></div>`; },
+  m(p, el) {
     loading(el, '.res');
     const run = () => cachedApi('news', 55e3, 'news').then(items => {
       if (!p.alive(el)) return;
-      const f = arg && arg !== 'ALL' ? items.filter(n => n.src === arg) : items;
-      $('.res', el).innerHTML = newsList(f, true);
+      mountNews(p, el, items);
       const mx = Math.max(0, ...items.map(n => n.t));
       setTimeout(() => { if (mx > NEWS_SEEN) { NEWS_SEEN = mx; store.set('seen', mx); } }, 15000);
     }).catch(e => p.alive(el) && fail(el, e, '.res'));
@@ -1106,34 +1133,38 @@ FN.TOP = {
   },
 };
 FN.N = {
-  d: 'News search (N <query>)', cat: 'news',
+  d: 'News search across every source (N <query>)', cat: 'news',
   r(p, y, arg) {
-    p.title = arg ? 'News: ' + arg : 'News';
-    return `<div class="bar"><span class="lbl">Search news</span><input class="inp" id="nq" style="flex:1" value="${esc(arg || '')}"><button class="btn" id="ngo">SEARCH</button></div><div class="res"></div>`;
+    const q = arg && typeof arg === 'object' ? arg.q : arg;
+    p.title = q ? 'News: ' + q : 'News';
+    return `<div class="bar"><span class="lbl">Search news</span><input class="inp" id="nq" style="flex:1" value="${esc(q || '')}"><button class="btn" id="ngo">SEARCH</button></div><div class="bar srcbar"></div><div class="res"></div>`;
   },
   m(p, el, y, arg) {
+    const q = arg && typeof arg === 'object' ? arg.q : arg;
+    if (q && typeof arg !== 'object') p.cur.arg = { q, src: 'ALL' };
     const go = () => { const v = $('#nq', el).value.trim(); p.go('N', null, v.toUpperCase(), false); };
     $('#ngo', el).onclick = go;
     $('#nq', el).onkeydown = e => { if (e.key === 'Enter') { e.stopPropagation(); go(); } };
     loading(el, '.res');
-    (arg ? cachedApi('n:' + arg, 60e3, 'news?q=' + encodeURIComponent(arg)) : cachedApi('news', 55e3, 'news'))
-      .then(items => p.alive(el) && ($('.res', el).innerHTML = newsList(items, true)))
+    (q ? cachedApi('n:' + q, 60e3, 'news?reddit=1&q=' + encodeURIComponent(q)) : cachedApi('news', 55e3, 'news'))
+      .then(items => p.alive(el) && mountNews(p, el, items))
       .catch(e => p.alive(el) && fail(el, e, '.res'));
   },
 };
 FN.CN = {
-  d: 'Company / security news', cat: 'news', sec: true,
-  r(p, y) { p.syms = [y]; return `<div class="bar"><span class="amb">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'chg')} ${L(y, 'pct')}</div><div class="res"></div>`; },
+  d: 'Company news from every source (Yahoo Finance, Google News publishers, Reddit)', cat: 'news', sec: true,
+  r(p, y) { p.syms = [y]; return `<div class="bar"><span class="amb">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'chg')} ${L(y, 'pct')}<button class="tab" data-cmd="BUZZ" style="margin-left:auto">SOCIAL BUZZ</button></div><div class="bar srcbar"></div><div class="res"></div>`; },
   m(p, el, y) {
     loading(el, '.res');
-    cachedApi('cn:' + y, 60e3, 'news?q=' + encodeURIComponent(y))
-      .then(items => p.alive(el) && ($('.res', el).innerHTML = newsList(items)))
+    const nm = nameOf(y) === y ? '' : nameOf(y);
+    cachedApi('cnr:' + y, 60e3, `news?q=${encodeURIComponent(y)}&name=${encodeURIComponent(nm)}${isEquity(y) ? '&reddit=1' : ''}`)
+      .then(items => p.alive(el) && mountNews(p, el, items))
       .catch(e => p.alive(el) && fail(el, e, '.res'));
   },
 };
 
 // ---------------------------------------------------------------- DES
-const SEC_MENU = [['GP', 'Price Graph'], ['GIP', 'Intraday Graph'], ['HP', 'Historical Prices'], ['Q', 'Quote'], ['FA', 'Financial Analysis'], ['ANR', 'Analyst Recs'], ['INSD', 'Insider Trades'], ['OMON', 'Options Monitor'], ['HDS', 'Holders'], ['SI', 'Short Interest'], ['DVD', 'Dividends'], ['CN', 'Company News'], ['COMP', 'Comparative Returns']];
+const SEC_MENU = [['TV', 'TradingView Chart'], ['GP', 'Price Graph'], ['GIP', 'Intraday Graph'], ['HP', 'Historical Prices'], ['Q', 'Quote'], ['FA', 'Financials (Yahoo)'], ['EE', 'Earnings Estimates'], ['ANR', 'Analyst Recs'], ['CN', 'News (all sources)'], ['BUZZ', 'Reddit & WSB Buzz'], ['INSD', 'Insider Trades'], ['OMON', 'Options Monitor'], ['HDS', 'Holders'], ['SI', 'Short Interest'], ['DVD', 'Dividends'], ['CF', 'SEC Filings'], ['COMP', 'Comparative Returns']];
 async function getSummary(y) { return cachedApi('sum:' + y, 300e3, 'summary?symbol=' + encodeURIComponent(y)); }
 const kv = rows => `<div class="kv">${rows.filter(Boolean).map(([k, v]) => `<span class="k">${k}</span><span class="v">${v}</span>`).join('')}</div>`;
 FN.DES = {
@@ -1226,7 +1257,7 @@ FN.GP = {
     return `<div class="gp">
       <div class="bar">${GP_RANGES.map(r => `<button class="tab ${r[0] === rg ? 'on' : ''}" data-go="GP|${r[0]}">${r[0]}</button>`).join('')}
         <span class="lbl">|</span><button class="tab ${st === 'LINE' ? 'on' : ''}" data-st="LINE">LINE</button><button class="tab ${st === 'CANDLE' ? 'on' : ''}" data-st="CANDLE">CANDLE</button>
-        <button class="tab ${ma ? 'on' : ''}" data-ma>MAVG</button></div>
+        <button class="tab ${ma ? 'on' : ''}" data-ma>MAVG</button><button class="tab" data-cmd="TV" style="margin-left:auto">TRADINGVIEW CHART</button></div>
       <div class="bar" style="gap:14px"><span class="amb">${esc(disp(y))}</span><span>${L(y, 'price')}</span><span>${L(y, 'chg')}</span><span>${L(y, 'pct')}</span><span class="stats dim"></span></div>
       <div class="legend lg"></div>
       <div class="chartwrap"><canvas class="chart"></canvas></div></div>`;
@@ -1390,38 +1421,430 @@ FN.Q = {
   },
 };
 
-// ---------------------------------------------------------------- FA
-const FA_ROWS = [['TotalRevenue', 'Revenue', big], ['GrossProfit', 'Gross Profit', big], ['OperatingIncome', 'Operating Income', big], ['EBITDA', 'EBITDA', big], ['NetIncome', 'Net Income', big], ['DilutedEPS', 'Diluted EPS', v => nf(v, 2)], ['DilutedAverageShares', 'Diluted Shares', big], ['OperatingCashFlow', 'Operating Cash Flow', big], ['CapitalExpenditure', 'CapEx', big], ['FreeCashFlow', 'Free Cash Flow', big], ['TotalAssets', 'Total Assets', big], ['TotalDebt', 'Total Debt', big], ['CashAndCashEquivalents', 'Cash & Equivalents', big], ['StockholdersEquity', 'Shareholders Equity', big]];
-FN.FA = {
-  d: 'Financial analysis (income, cash flow, balance sheet)', cat: 'sec', sec: true,
+// ---------------------------------------------------------------- TV: TradingView chart
+// Yahoo symbol -> TradingView symbol. Widgets can't show every exchange feed, so some indices use the CFD that tracks them.
+const TV_SYM = {
+  '^GSPC': 'FOREXCOM:SPXUSD', '^DJI': 'FOREXCOM:DJI', '^IXIC': 'NASDAQ:IXIC', '^NDX': 'FOREXCOM:NSXUSD', '^RUT': 'TVC:RUT', '^VIX': 'TVC:VIX',
+  '^GSPTSE': 'TSX:TSX', '^MXX': 'BMV:ME', '^BVSP': 'BMFBOVESPA:IBOV', '^STOXX50E': 'TVC:SX5E', '^FTSE': 'TVC:UKX', '^GDAXI': 'XETR:DAX', '^FCHI': 'EURONEXT:PX1',
+  '^IBEX': 'BME:IBC', '^SSMI': 'SIX:SMI', '^AEX': 'EURONEXT:AEX', '^N225': 'TVC:NI225', '^HSI': 'TVC:HSI', '000001.SS': 'SSE:000001', '^KS11': 'TVC:KOSPI',
+  '^TWII': 'TWSE:TAIEX', '^AXJO': 'ASX:XJO', '^BSESN': 'BSE:SENSEX', '^STI': 'TVC:STI',
+  '^TNX': 'TVC:US10Y', '^IRX': 'TVC:US03MY', '^FVX': 'TVC:US05Y', '^TYX': 'TVC:US30Y', 'DX-Y.NYB': 'TVC:DXY',
+  'CL=F': 'NYMEX:CL1!', 'BZ=F': 'TVC:UKOIL', 'NG=F': 'NYMEX:NG1!', 'RB=F': 'NYMEX:RB1!', 'HO=F': 'NYMEX:HO1!', 'GC=F': 'COMEX:GC1!', 'SI=F': 'COMEX:SI1!',
+  'HG=F': 'COMEX:HG1!', 'PL=F': 'NYMEX:PL1!', 'PA=F': 'NYMEX:PA1!', 'ZW=F': 'CBOT:ZW1!', 'ZC=F': 'CBOT:ZC1!', 'ZS=F': 'CBOT:ZS1!', 'KC=F': 'ICEUS:KC1!',
+  'SB=F': 'ICEUS:SB1!', 'CT=F': 'ICEUS:CT1!', 'CC=F': 'ICEUS:CC1!', 'LE=F': 'CME:LE1!', 'ES=F': 'CME_MINI:ES1!', 'NQ=F': 'CME_MINI:NQ1!', 'YM=F': 'CBOT_MINI:YM1!',
+  'RTY=F': 'CME_MINI:RTY1!', 'ZN=F': 'CBOT:ZN1!', 'ZB=F': 'CBOT:ZB1!',
+};
+const TV_EX = { '.L': 'LSE', '.DE': 'XETR', '.PA': 'EURONEXT', '.AS': 'EURONEXT', '.MI': 'MIL', '.MC': 'BME', '.SW': 'SIX', '.T': 'TSE', '.HK': 'HKEX', '.TO': 'TSX',
+  '.AX': 'ASX', '.KS': 'KRX', '.NS': 'NSE', '.ST': 'OMXSTO', '.SA': 'BMFBOVESPA', '.MX': 'BMV', '.CO': 'OMXCOP', '.OL': 'OSL', '.HE': 'OMXHEX', '.TW': 'TWSE', '.SI': 'SGX' };
+const TV_COINBASE = new Set(['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'AVAX', 'LINK', 'LTC', 'DOT', 'SHIB', 'BCH', 'UNI', 'XLM', 'AAVE']);
+function tvSym(y) {
+  if (TV_SYM[y]) return TV_SYM[y];
+  let m;
+  if ((m = y.match(/^([A-Z]{6})=X$/))) return 'FX_IDC:' + m[1];
+  if ((m = y.match(/^([A-Z]{3})=X$/))) return 'FX_IDC:USD' + m[1];
+  if ((m = y.match(/^([A-Z0-9]+)-USD$/))) return TV_COINBASE.has(m[1]) ? `COINBASE:${m[1]}USD` : `BINANCE:${m[1]}USDT`;
+  if ((m = y.match(/^([A-Z0-9]+)=F$/))) return m[1] + '1!';
+  if ((m = y.match(/^(.+)(\.[A-Z]{1,2})$/)) && TV_EX[m[2]]) return `${TV_EX[m[2]]}:${m[2] === '.HK' ? String(+m[1]) : m[1].replace('-', '.')}`;
+  return y.replace(/^\^/, '').replace('-', '.');
+}
+// TradingView's embed scripts read their JSON config from the script element and render an iframe next to it
+function tvEmbed(box, kind, cfg) {
+  box.innerHTML = '<div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div></div>';
+  const s = document.createElement('script');
+  s.src = `https://s3.tradingview.com/external-embedding/embed-widget-${kind}.js`;
+  s.async = true;
+  s.textContent = JSON.stringify(cfg);
+  s.onerror = () => { box.innerHTML = '<div class="empty dn">Could not load TradingView — is s3.tradingview.com blocked by your network or an ad blocker?</div>'; };
+  box.firstChild.appendChild(s);
+}
+const TV_IVS = [['1', '1m'], ['5', '5m'], ['15', '15m'], ['60', '1H'], ['240', '4H'], ['D', '1D'], ['W', '1W'], ['M', '1M']];
+const TV_TA_IV = { 1: '1m', 5: '5m', 15: '15m', 60: '1h', 240: '4h', D: '1D', W: '1W', M: '1M' };
+FN.TV = {
+  d: 'TradingView chart: TradingView data, indicators & drawing tools', cat: 'sec', sec: true,
   r(p, y, arg) {
     p.syms = [y];
-    const per = arg === 'quarterly' ? 'quarterly' : 'annual';
-    return `<div class="bar"><button class="tab ${per === 'annual' ? 'on' : ''}" data-go="FA|annual">ANNUAL</button><button class="tab ${per === 'quarterly' ? 'on' : ''}" data-go="FA|quarterly">QUARTERLY</button><span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}</div><div class="res"></div>`;
+    const iv = TV_IVS.find(x => x[0] === arg)?.[0] || store.get('tv.iv', 'D');
+    const ta = store.get('tv.ta', true);
+    return `<div class="gp"><div class="bar">${TV_IVS.map(([k, l]) => `<button class="tab ${k === iv ? 'on' : ''}" data-go="TV|${k}">${l}</button>`).join('')}
+      <span class="lbl">|</span><button class="tab ${ta ? 'on' : ''}" data-ta>TECHNICALS</button><button class="tab" data-cmd="GP">YAHOO CHART</button>
+      <span class="lbl">${esc(tvSym(y))}${/^FOREXCOM:|^TVC:UKOIL/.test(tvSym(y)) ? ' <span class="dim" title="TradingView\'s embedded charts show this index through the CFD that tracks it. Type another symbol in the chart\'s search box to switch.">(tracking CFD)</span>' : ''}</span><span>${L(y, 'price')}</span><span>${L(y, 'pct')}</span>
+      <a class="btn" style="margin-left:auto" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSym(y))}" target="_blank" rel="noopener noreferrer">OPEN ON TRADINGVIEW ↗</a></div>
+      <div class="tvwrap ${ta ? 'withta' : ''}"><div class="tvchart"></div>${ta ? '<div class="tvta"></div>' : ''}</div></div>`;
   },
   m(p, el, y, arg) {
-    const per = arg === 'quarterly' ? 'quarterly' : 'annual';
-    loading(el, '.res');
-    cachedApi('fin:' + y, 3600e3, 'fin?symbol=' + encodeURIComponent(y)).then(f => {
-      if (!p.alive(el)) return;
-      const d = f[per];
-      const dates = [...new Set(Object.values(d).flat().map(x => x.d))].sort().slice(per === 'annual' ? -6 : -8);
-      if (!dates.length) { $('.res', el).innerHTML = '<div class="empty">No financial statements available for this security.</div>'; return; }
-      const val = (k, dt) => d[k]?.find(x => x.d === dt)?.v ?? null;
-      let h = `<table><thead><tr><th class="l">${per === 'annual' ? 'Fiscal Year' : 'Quarter'} (${esc(Q[y]?.ccy || '')})</th>${dates.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>`;
-      FA_ROWS.forEach(([k, n, fm]) => { if (d[k]) h += `<tr><td class="l">${n}</td>${dates.map(dt => { const v = val(k, dt); return `<td class="${v < 0 ? 'dn' : ''}">${ok(v) ? fm(v) : '—'}</td>`; }).join('')}</tr>`; });
-      h += `<tr class="grp"><td colspan="${dates.length + 1}">Ratios & Growth</td></tr>`;
-      const ratio = (n, fn) => `<tr><td class="l">${n}</td>${dates.map((dt, i) => { const v = fn(dt, i); return `<td class="${cls(v)}">${ok(v) ? nf(v, 1) + '%' : '—'}</td>`; }).join('')}</tr>`;
-      const mg = k => dt => { const a = val(k, dt), r = val('TotalRevenue', dt); return ok(a) && r ? a / r * 100 : null; };
-      h += ratio('Gross Margin', mg('GrossProfit')) + ratio('Operating Margin', mg('OperatingIncome')) + ratio('Net Margin', mg('NetIncome')) + ratio('FCF Margin', mg('FreeCashFlow'));
-      const lag = per === 'annual' ? 1 : 4;
-      const gr = k => (dt, i) => { if (i < lag) return null; const a = val(k, dt), b = val(k, dates[i - lag]); return ok(a) && ok(b) && b ? (a / Math.abs(b) - Math.sign(b)) * 100 : null; };
-      h += ratio(per === 'annual' ? 'Revenue Growth YoY' : 'Revenue Growth YoY (vs Q-4)', gr('TotalRevenue')) + ratio('EPS Growth YoY', gr('DilutedEPS'));
-      h += ratio('Return on Equity', dt => { const a = val('NetIncome', dt), e = val('StockholdersEquity', dt); return ok(a) && e ? a / e * 100 * (per === 'annual' ? 1 : 4) : null; });
-      $('.res', el).innerHTML = h + '</tbody></table>';
-    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+    const iv = TV_IVS.find(x => x[0] === arg)?.[0] || store.get('tv.iv', 'D');
+    if (arg) store.set('tv.iv', iv);
+    $('[data-ta]', el).onclick = () => { store.set('tv.ta', !store.get('tv.ta', true)); p.rerender(); };
+    const symbol = tvSym(y);
+    tvEmbed($('.tvchart', el), 'advanced-chart', {
+      autosize: true, symbol, interval: iv, timezone: 'exchange', theme: 'dark', style: '1', locale: 'en', backgroundColor: 'rgba(10, 12, 16, 1)',
+      gridColor: 'rgba(255, 255, 255, 0.04)', allow_symbol_change: true, withdateranges: true, hide_side_toolbar: false, details: false, calendar: false,
+      save_image: true, studies: ['STD;Volume'], support_host: 'https://www.tradingview.com',
+    });
+    if ($('.tvta', el)) tvEmbed($('.tvta', el), 'technical-analysis', { interval: TV_TA_IV[iv] || '1D', width: '100%', height: '100%', isTransparent: true, symbol, showIntervalTabs: true, displayMode: 'single', locale: 'en', colorTheme: 'dark' });
   },
 };
+
+// ---------------------------------------------------------------- news from every source
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '#';
+function newsChips(items, sel) {
+  const counts = {};
+  items.forEach(n => { counts[n.src] = (counts[n.src] || 0) + 1; });
+  const srcs = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const rd = items.filter(n => n.social).length;
+  const chip = (k, l, n) => `<button class="tab ${String(sel).toUpperCase() === k.toUpperCase() ? 'on' : ''}" data-src="${esc(k)}">${esc(l)} <span class="dim">${n}</span></button>`;
+  return chip('ALL', 'ALL', items.length) + (rd ? chip('REDDIT', 'REDDIT', rd) : '') + srcs.filter(([s]) => !s.startsWith('r/')).slice(0, 18).map(([s, n]) => chip(s, s, n)).join('')
+    + (srcs.length > 18 ? `<select class="inp" data-more><option value="">+${srcs.length - 18} more sources</option>${srcs.slice(18).map(([s, n]) => `<option value="${esc(s)}">${esc(s)} (${n})</option>`).join('')}</select>` : '')
+    + `<span class="lbl">${srcs.length} sources</span>`;
+}
+const newsFilter = (items, sel) => !sel || sel === 'ALL' ? items : sel === 'REDDIT' ? items.filter(n => n.social) : items.filter(n => n.src.toUpperCase() === String(sel).toUpperCase());
+// Renders a source-filterable news list into el; sel is kept on p.cur.arg.src
+function mountNews(p, el, items, title) {
+  const st = p.cur.arg && typeof p.cur.arg === 'object' ? p.cur.arg : (p.cur.arg = { src: typeof p.cur.arg === 'string' ? p.cur.arg : 'ALL' });
+  if (!['ALL', 'REDDIT'].includes(st.src) && !items.some(n => n.src.toUpperCase() === String(st.src).toUpperCase())) st.src = 'ALL';
+  const draw = () => {
+    $('.srcbar', el).innerHTML = (title ? `<span class="lbl" style="margin-left:0">${title}</span>` : '') + newsChips(items, st.src);
+    const f = newsFilter(items, st.src);
+    $('.res', el).innerHTML = f.length ? newsList(f, true) : '<div class="empty">No stories from this source right now.</div>';
+    $$('[data-src]', el).forEach(b => b.onclick = () => { st.src = b.dataset.src; store.set('panel' + p.i, p.cur); draw(); });
+    const more = $('[data-more]', el);
+    if (more) more.onchange = () => { if (more.value) { st.src = more.value; store.set('panel' + p.i, p.cur); draw(); } };
+  };
+  draw();
+}
+
+// ---------------------------------------------------------------- Reddit / WallStreetBets
+const RD_SUBS = ['wallstreetbets', 'stocks', 'investing', 'options', 'StockMarket', 'pennystocks', 'Superstonk', 'thetagang', 'ValueInvesting', 'SecurityAnalysis', 'Daytrading', 'CryptoCurrency', 'Bitcoin', 'economy'];
+const tkChip = t => `<span class="tk" data-cmd="${esc(t)} DES">$${esc(t)}</span>`;
+function rdPosts(posts, max = 60) {
+  if (!posts.length) return '<div class="empty">No posts.</div>';
+  return posts.slice(0, max).map(x => `<div class="rpost${x.sticky ? ' pin' : ''}">
+    <div class="rmeta">${x.score != null ? `<b class="amb">▲ ${big(x.score)}</b><span>💬 ${big(x.comments)}</span>` : ''}<span class="dim">${x.t ? ago(x.t) : ''}</span></div>
+    <div class="rbody"><div>${x.flair ? `<span class="flair">${esc(x.flair)}</span>` : ''}<a href="${esc(safeUrl(x.link))}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a></div>
+      ${x.text ? `<div class="rtext">${esc(x.text.slice(0, 260))}</div>` : ''}
+      <div class="rfoot"><span class="dim">r/${esc(x.sub)} · u/${esc(x.author)}</span>${(x.tickers || []).slice(0, 8).map(tkChip).join('')}</div></div></div>`).join('');
+}
+function rdMentions(list, max = 25) {
+  if (!list.length) return '<div class="dim">No tickers mentioned.</div>';
+  return `<table><thead><tr><th></th><th class="l">Ticker</th><th>Mentions</th><th class="l">Tone (bull / bear)</th><th>Last</th><th>%Chg</th></tr></thead><tbody>` +
+    list.slice(0, max).map((x, i) => {
+      const tot = x.bull + x.bear;
+      return `<tr class="clk" data-cmd="${esc(x.sym)} DES"><td class="n">${i + 1})</td><td class="l amb">${esc(x.sym)}</td><td>${x.n}</td>
+        <td class="l">${tot ? `<span class="tone"><i class="b" style="width:${x.bull / tot * 100}%"></i><i class="s" style="width:${x.bear / tot * 100}%"></i></span> <span class="up">${x.bull}</span>/<span class="dn">${x.bear}</span>` : '<span class="dim">neutral</span>'}</td>
+        <td>${L(x.sym, 'price')}</td><td>${L(x.sym, 'pct')}</td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+function wordCloud(words) {
+  if (!words || !words.length) return '<div class="dim">Not enough posts to find topics.</div>';
+  const mx = words[0].s, mn = words[words.length - 1].s;
+  return '<div class="cloud">' + words.map((w, i) => {
+    const f = mx > mn ? (w.s - mn) / (mx - mn) : 1;
+    return `<span data-cmd="N ${esc(w.w.toUpperCase())}" title="Search news for “${esc(w.w)}”" style="font-size:${Math.round(11 + f * 15)}px;opacity:${(0.55 + f * 0.45).toFixed(2)};color:${i % 3 === 0 ? 'var(--amber)' : i % 3 === 1 ? 'var(--txt)' : 'var(--blue)'}">${esc(w.w)}</span>`;
+  }).join(' ') + '</div>';
+}
+const srcNote = d => `<div class="dim" style="margin-top:6px">Source: ${esc(d.src || 'Reddit')}${d.note ? ` <span title="${esc(d.note)}">(Reddit's API blocks cloud servers; add REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET for upvote counts)</span>` : ''}.</div>`;
+
+FN.WSB = {
+  d: 'WallStreetBets: what r/wallstreetbets is talking about — tickers, sentiment, daily thread, hot posts', cat: 'news',
+  r(p) {
+    p.title = 'r/wallstreetbets — What They\'re Talking About';
+    const b = (k, t, extra = '') => `<div class="box ${extra}"><div class="t">${t}</div><div class="w-${k}"><div class="spin"></div></div></div>`;
+    return `<div class="pad">
+      <div class="cols3">${b('men', 'Most mentioned now <span class="dim">(hot posts + daily thread)</span>')}${b('ape', '24h leaderboard <span class="dim">(ApeWisdom)</span>')}${b('trs', 'Comment sentiment <span class="dim">(Tradestie)</span>')}</div>
+      <div style="margin-top:10px">${b('cloud', 'What they\'re talking about')}</div>
+      <div class="cols" style="margin-top:10px">${b('daily', 'Daily discussion thread')}${b('posts', 'Hot posts')}</div>
+      <div class="w-src"></div></div>`;
+  },
+  m(p, el) {
+    const load = () => cachedApi('wsb', 110e3, 'wsb').then(d => {
+      if (!p.alive(el)) return;
+      subscribe(p, [...d.tickers.slice(0, 25).map(x => x.sym), ...d.ape.slice(0, 20).map(x => x.sym)]);
+      $('.w-men', el).innerHTML = rdMentions(d.tickers);
+      $('.w-ape', el).innerHTML = d.ape.length ? `<table><thead><tr><th>#</th><th>Δ</th><th class="l">Ticker</th><th>Mentions</th><th>Δ 24h</th><th>Upvotes</th><th>%Chg</th></tr></thead><tbody>` +
+        d.ape.slice(0, 25).map(r => { const dr = r.rank24 ? r.rank24 - r.rank : null, dm = r.mentions24 ? (r.mentions / r.mentions24 - 1) * 100 : null; return `<tr class="clk" data-cmd="${esc(r.sym)} DES"><td>${r.rank}</td><td class="${cls(dr)}">${dr ? (dr > 0 ? '▲' : '▼') + Math.abs(dr) : '—'}</td><td class="l amb" title="${esc(unent(r.name))}">${esc(r.sym)}</td><td>${nf(r.mentions, 0)}</td><td class="${cls(dm)}">${ok(dm) ? pc(dm, 0) : 'new'}</td><td>${big(r.upvotes)}</td><td>${L(r.sym, 'pct')}</td></tr>`; }).join('') + '</tbody></table>'
+        : `<div class="dim">Unavailable${d.apeErr ? ': ' + esc(d.apeErr) : ''}</div>`;
+      $('.w-trs', el).innerHTML = d.tradestie.length ? `<table><thead><tr><th class="l">Ticker</th><th>Comments</th><th class="l">Sentiment</th><th>Score</th></tr></thead><tbody>` +
+        d.tradestie.slice(0, 25).map(r => `<tr class="clk" data-cmd="${esc(r.sym)} DES"><td class="l amb">${esc(r.sym)}</td><td>${r.comments}</td><td class="l ${r.sentiment === 'Bullish' ? 'up' : r.sentiment === 'Bearish' ? 'dn' : 'dim'}">${esc(r.sentiment)}</td><td class="${cls(r.score)}">${ok(r.score) ? nf(r.score, 3) : '—'}</td></tr>`).join('') + '</tbody></table>'
+        : `<div class="dim">Unavailable${d.tradestieErr ? ': ' + esc(d.tradestieErr) : ''}</div>`;
+      $('.w-cloud', el).innerHTML = wordCloud(d.words) + '<div class="dim" style="margin-top:4px">Most-used words in today\'s hot posts and daily-thread comments, weighted by upvotes where available. Click a word to search the news.</div>';
+      const dl = d.daily;
+      $('.w-daily', el).innerHTML = !dl ? '<div class="dim">No daily thread pinned right now.</div>'
+        : `<div style="margin-bottom:6px"><a class="amb" href="${esc(safeUrl(dl.link))}" target="_blank" rel="noopener noreferrer">${esc(dl.title)} ↗</a></div>` + (dl.err ? `<div class="dim">Comments unavailable: ${esc(dl.err)}</div>`
+          : `${dl.tickers?.length ? `<div style="margin-bottom:6px"><span class="dim">Tickers in the thread:</span> ${dl.tickers.slice(0, 15).map(x => `${tkChip(x.sym)}<span class="dim">×${x.n}</span>`).join(' ')}</div>` : ''}<div class="dlist">` +
+            dl.comments.slice(0, 80).map(c => `<div class="dcom"><span class="dim">${c.score != null ? '▲' + c.score + ' · ' : ''}${c.t ? ago(c.t) : ''} · u/${esc(c.author)}</span><div>${esc(c.body)}</div></div>`).join('') + '</div>');
+      $('.w-posts', el).innerHTML = rdPosts(d.posts.filter(x => !x.sticky), 40);
+      $('.w-src', el).innerHTML = srcNote(d) + '<div class="dim">Ticker mentions are counted from $CASHTAGS and known tickers; tone counts bullish (calls, moon, 🚀) vs bearish (puts, short, 🌈🐻) words. Not investment advice.</div>';
+    }).catch(e => { if (p.alive(el)) $$('.spin', el).forEach(s => { s.outerHTML = `<div class="dn">${esc(e.message)}</div>`; }); });
+    load();
+    let n = 0; p.tick = () => { if (++n % 24 === 0) load(); };
+  },
+};
+
+FN.REDDIT = {
+  d: 'Reddit: finance subreddits (REDDIT STOCKS, REDDIT OPTIONS…) or search Reddit (REDDIT NVDA)', cat: 'news',
+  r(p, y, arg) {
+    let st = arg && typeof arg === 'object' ? arg : null;
+    if (!st) {
+      const a = typeof arg === 'string' ? arg.trim() : '';
+      const sub = RD_SUBS.find(s => s.toLowerCase() === a.toLowerCase().replace(/^r\//, ''));
+      st = a && !sub ? { q: a, sub: 'wallstreetbets', sort: 'hot' } : { sub: sub || 'wallstreetbets', sort: 'hot' };
+    }
+    p.cur.arg = st;
+    p.title = st.q ? `Reddit — posts mentioning “${st.q}”` : `Reddit — r/${st.sub}`;
+    return `<div class="bar">${RD_SUBS.slice(0, 9).map(s => `<button class="tab ${!st.q && st.sub === s ? 'on' : ''}" data-sub="${s}">r/${s}</button>`).join('')}
+        <select class="inp" data-subsel><option value="">more…</option>${RD_SUBS.slice(9).map(s => `<option value="${s}" ${!st.q && st.sub === s ? 'selected' : ''}>r/${s}</option>`).join('')}</select></div>
+      <div class="bar">${[['hot', 'HOT'], ['new', 'NEW'], ['top:day', 'TOP TODAY'], ['top:week', 'TOP WEEK'], ['rising', 'RISING']].map(([k, l]) => `<button class="tab ${!st.q && (st.sort + (st.t ? ':' + st.t : '')) === k ? 'on' : ''}" data-sort="${k}">${l}</button>`).join('')}
+        <span class="lbl">Search Reddit</span><input class="inp" id="rq" size="16" placeholder="ticker or phrase" value="${esc(st.q || '')}"><button class="btn" id="rgo">SEARCH</button></div>
+      <div class="pad"><div class="cols"><div class="box"><div class="t">Most mentioned tickers</div><div class="r-men"><div class="spin"></div></div></div><div class="box"><div class="t">What they're talking about</div><div class="r-cloud"><div class="spin"></div></div></div></div>
+      <div class="box" style="margin-top:10px"><div class="t">Posts</div><div class="r-posts"><div class="spin"></div></div></div><div class="r-src"></div></div>`;
+  },
+  m(p, el) {
+    const st = p.cur.arg;
+    const nav = s => p.go('REDDIT', null, s, false);
+    $$('[data-sub]', el).forEach(b => b.onclick = () => nav({ sub: b.dataset.sub, sort: st.sort || 'hot', t: st.t }));
+    $('[data-subsel]', el).onchange = e => e.target.value && nav({ sub: e.target.value, sort: st.sort || 'hot', t: st.t });
+    $$('[data-sort]', el).forEach(b => b.onclick = () => { const [sort, t] = b.dataset.sort.split(':'); nav({ sub: st.sub, sort, t }); });
+    const search = () => { const q = $('#rq', el).value.trim(); if (q) nav({ q, sub: st.sub, sort: 'hot' }); };
+    $('#rgo', el).onclick = search;
+    $('#rq', el).onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') search(); };
+    const path = st.q ? 'rsearch?q=' + encodeURIComponent(st.q) : `reddit?sub=${encodeURIComponent(st.sub)}&sort=${st.sort || 'hot'}${st.t ? '&t=' + st.t : ''}`;
+    const load = () => cachedApi('rd:' + path, 110e3, path).then(d => {
+      if (!p.alive(el)) return;
+      const posts = st.q ? d.posts.map(x => ({ ...x, tickers: [] })) : d.posts;
+      if (!st.q) subscribe(p, d.tickers.slice(0, 25).map(x => x.sym));
+      $('.r-men', el).innerHTML = st.q ? `<div class="dim">${d.posts.length} recent posts mention “${esc(st.q)}” across r/wallstreetbets, r/stocks, r/investing, r/options, r/StockMarket and r/pennystocks.</div>` : rdMentions(d.tickers);
+      $('.r-cloud', el).innerHTML = st.q ? '' : wordCloud(d.words);
+      $('.r-posts', el).innerHTML = rdPosts(posts, 100);
+      $('.r-src', el).innerHTML = srcNote(d);
+    }).catch(e => { if (p.alive(el)) $$('.spin', el).forEach(s => { s.outerHTML = `<div class="dn">${esc(e.message)}</div>`; }); });
+    load();
+    let n = 0; p.tick = () => { if (++n % 24 === 0) load(); };
+  },
+};
+
+FN.BUZZ = {
+  d: 'Social buzz for a security: WallStreetBets rank, Reddit posts, news from every source', cat: 'sec', sec: true,
+  r(p, y) {
+    p.syms = [y];
+    return `<div class="pad"><div class="hero"><span class="h" style="font-size:15px">${esc(nameOf(y))}</span><span class="dim">${esc(disp(y))}</span><span class="big">${L(y, 'price')}</span><span>${L(y, 'chg')}</span><span>${L(y, 'pct')}</span></div>
+      <div class="kpis bz"><div class="spin"></div></div>
+      <div class="cols" style="margin-top:10px"><div class="box"><div class="t">Reddit posts mentioning ${esc(shortOf(y))}</div><div class="b-posts"><div class="spin"></div></div></div>
+      <div class="box"><div class="t">News from every source</div><div class="b-news"><div class="spin"></div></div></div></div></div>`;
+  },
+  m(p, el, y) {
+    const t = shortOf(y).replace(/[^A-Z0-9.]/g, '');
+    Promise.allSettled([cachedApi('wsb', 110e3, 'wsb'), cachedApi('sent', 300e3, 'sentiment')]).then(([w, s]) => {
+      if (!p.alive(el)) return;
+      const k = (label, val, sub, c) => `<div class="kpi"><div class="dim">${label}</div><div class="big ${c || ''}">${val}</div><div class="dim">${sub || ''}</div></div>`;
+      const wd = w.value, men = wd?.tickers.find(x => x.sym === t), ape = wd?.ape.find(x => x.sym === t), trs = wd?.tradestie.find(x => x.sym === t);
+      const all = s.value?.reddit?.find(x => x.sym === t);
+      $('.bz', el).innerHTML = k('WSB right now', men ? men.n + ' mentions' : 'not mentioned', men ? `rank ${wd.tickers.indexOf(men) + 1} · tone ${men.bull}▲ / ${men.bear}▼` : 'in hot posts & daily thread')
+        + k('WSB 24h (ApeWisdom)', ape ? '#' + ape.rank : '—', ape ? `${nf(ape.mentions, 0)} mentions · ${big(ape.upvotes)} upvotes` : 'not in the top 100')
+        + k('All of Reddit (ApeWisdom)', all ? '#' + all.rank : '—', all ? `${nf(all.mentions, 0)} mentions in 24h` : 'not in the top 60')
+        + k('WSB sentiment (Tradestie)', trs ? esc(trs.sentiment) : '—', trs ? `${trs.comments} comments · score ${nf(trs.score, 3)}` : 'no recent comments', trs ? (trs.sentiment === 'Bullish' ? 'up' : 'dn') : '');
+    });
+    cachedApi('rs:' + t, 300e3, 'rsearch?q=' + encodeURIComponent(t)).then(d => p.alive(el) && ($('.b-posts', el).innerHTML = rdPosts(d.posts, 30) + srcNote(d)))
+      .catch(e => p.alive(el) && fail(el, e, '.b-posts'));
+    cachedApi('cn:' + y, 60e3, `news?q=${encodeURIComponent(y)}&name=${encodeURIComponent(nameOf(y) === y ? '' : nameOf(y))}`).then(items => p.alive(el) && ($('.b-news', el).innerHTML = newsList(items.slice(0, 40), false)))
+      .catch(e => p.alive(el) && fail(el, e, '.b-news'));
+  },
+};
+
+// ---------------------------------------------------------------- FA: Yahoo Finance financial statements, ratios, statistics, estimates, filings
+const FA_TABS = [['income', 'INCOME'], ['balance', 'BALANCE SHEET'], ['cash', 'CASH FLOW'], ['ratios', 'RATIOS'], ['stats', 'KEY STATS'], ['est', 'ESTIMATES'], ['filings', 'SEC FILINGS']];
+// [key, label, bold, format]
+const FA_LINES = {
+  income: [['TotalRevenue', 'Total revenue', 1], ['CostOfRevenue', 'Cost of revenue'], ['GrossProfit', 'Gross profit', 1], ['ResearchAndDevelopment', 'Research & development'],
+    ['SellingGeneralAndAdministration', 'Selling, general & admin'], ['OperatingExpense', 'Operating expenses'], ['OperatingIncome', 'Operating income', 1],
+    ['InterestIncome', 'Interest income'], ['InterestExpense', 'Interest expense'], ['OtherIncomeExpense', 'Other income / expense'], ['PretaxIncome', 'Pretax income'],
+    ['TaxProvision', 'Income tax'], ['NetIncome', 'Net income', 1], ['EBIT', 'EBIT'], ['EBITDA', 'EBITDA'], ['NormalizedEBITDA', 'Normalized EBITDA'],
+    ['ReconciledDepreciation', 'Depreciation & amortization'], ['BasicEPS', 'Basic EPS', 0, 'eps'], ['DilutedEPS', 'Diluted EPS', 1, 'eps'],
+    ['BasicAverageShares', 'Basic shares'], ['DilutedAverageShares', 'Diluted shares']],
+  balance: [['CashCashEquivalentsAndShortTermInvestments', 'Cash & short-term investments', 1], ['CashAndCashEquivalents', 'Cash & equivalents'], ['AccountsReceivable', 'Accounts receivable'],
+    ['Inventory', 'Inventory'], ['CurrentAssets', 'Total current assets', 1], ['NetPPE', 'Property, plant & equipment'], ['GoodwillAndOtherIntangibleAssets', 'Goodwill & intangibles'],
+    ['TotalNonCurrentAssets', 'Total non-current assets'], ['TotalAssets', 'Total assets', 1], ['AccountsPayable', 'Accounts payable'], ['CurrentDebt', 'Current debt'],
+    ['CurrentLiabilities', 'Total current liabilities', 1], ['LongTermDebt', 'Long-term debt'], ['TotalDebt', 'Total debt', 1], ['NetDebt', 'Net debt'],
+    ['TotalLiabilitiesNetMinorityInterest', 'Total liabilities', 1], ['RetainedEarnings', 'Retained earnings'], ['StockholdersEquity', "Shareholders' equity", 1],
+    ['WorkingCapital', 'Working capital'], ['TangibleBookValue', 'Tangible book value'], ['InvestedCapital', 'Invested capital'], ['OrdinarySharesNumber', 'Shares outstanding']],
+  cash: [['OperatingCashFlow', 'Operating cash flow', 1], ['DepreciationAndAmortization', 'Depreciation & amortization'], ['StockBasedCompensation', 'Stock-based compensation'],
+    ['ChangeInWorkingCapital', 'Change in working capital'], ['CapitalExpenditure', 'Capital expenditure'], ['InvestingCashFlow', 'Investing cash flow', 1],
+    ['RepurchaseOfCapitalStock', 'Share buybacks'], ['CashDividendsPaid', 'Dividends paid'], ['IssuanceOfDebt', 'Debt issued'], ['RepaymentOfDebt', 'Debt repaid'],
+    ['FinancingCashFlow', 'Financing cash flow', 1], ['FreeCashFlow', 'Free cash flow', 1], ['EndCashPosition', 'Ending cash']],
+};
+function miniBars(vals) {
+  const v = vals.map(x => ok(x) ? x : 0), mx = Math.max(...v.map(Math.abs)), w = 9, h = 18;
+  if (!mx) return '';
+  return `<svg width="${v.length * w}" height="${h}" class="mbars" aria-hidden="true">${v.map((x, i) => { const bh = Math.max(1, Math.abs(x) / mx * (h - 2)); return `<rect x="${i * w + 1}" y="${h - 1 - bh}" width="${w - 3}" height="${bh}" rx="1" fill="${x < 0 ? '#ff4d5e' : '#ffa62b'}" opacity="${(0.4 + 0.6 * (i + 1) / v.length).toFixed(2)}"/>`; }).join('')}</svg>`;
+}
+const getFin = y => cachedApi('fin:' + y, 3600e3, 'fin?symbol=' + encodeURIComponent(y));
+const getAnalysis = y => cachedApi('ana:' + y, 3600e3, 'analysis?symbol=' + encodeURIComponent(y));
+FN.FA = {
+  d: 'Financial analysis (Yahoo Finance): statements, ratios, key stats, estimates, filings', cat: 'sec', sec: true,
+  r(p, y, arg) {
+    p.syms = [y];
+    const [tab0, per0] = String(arg || '').split(':');
+    const tab = FA_TABS.find(x => x[0] === tab0)?.[0] || 'income', per = per0 === 'quarterly' ? 'quarterly' : 'annual';
+    const perBtns = ['income', 'balance', 'cash', 'ratios'].includes(tab) ? `<span class="lbl">|</span><button class="tab ${per === 'annual' ? 'on' : ''}" data-go="FA|${tab}:annual">ANNUAL</button><button class="tab ${per === 'quarterly' ? 'on' : ''}" data-go="FA|${tab}:quarterly">QUARTERLY</button>` : '';
+    return `<div class="bar">${FA_TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-go="FA|${k}:${per}">${l}</button>`).join('')}${perBtns}<span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}</div><div class="res"></div>`;
+  },
+  m(p, el, y, arg) {
+    const [tab0, per0] = String(arg || '').split(':');
+    const tab = FA_TABS.find(x => x[0] === tab0)?.[0] || 'income', per = per0 === 'quarterly' ? 'quarterly' : 'annual';
+    loading(el, '.res');
+    const out = h => { if (p.alive(el)) $('.res', el).innerHTML = h + '<div class="pad dim">Source: Yahoo Finance.</div>'; };
+    const err = e => p.alive(el) && fail(el, e, '.res');
+    if (tab === 'stats') return getSummary(y).then(s => out(faStats(y, s))).catch(err);
+    if (tab === 'est') return getAnalysis(y).then(a => { out(faEstimates(y, a)); faEpsChart(el, a); }).catch(err);
+    if (tab === 'filings') return getAnalysis(y).then(a => out(faFilings(a))).catch(err);
+    getFin(y).then(f => out(tab === 'ratios' ? faRatios(y, f, per) : faStatement(y, f, tab, per))).catch(err);
+  },
+};
+FN.EE = { d: 'Earnings estimates, EPS revisions & surprise history (Yahoo Finance)', cat: 'sec', sec: true, r: (p, y) => FN.FA.r(p, y, 'est'), m: (p, el, y) => FN.FA.m(p, el, y, 'est') };
+FN.CF = { d: 'Company SEC filings (10-K, 10-Q, 8-K…)', cat: 'sec', sec: true, r: (p, y) => FN.FA.r(p, y, 'filings'), m: (p, el, y) => FN.FA.m(p, el, y, 'filings') };
+
+function faDates(d, per) {
+  return [...new Set(Object.values(d).flat().map(x => x.d))].sort().slice(per === 'annual' ? -5 : -8);
+}
+const faVal = (d, k, dt) => d[k]?.find(x => x.d === dt)?.v ?? null;
+const faTtm = (f, k) => { const a = f.trailing?.[k]; return a && a.length ? a[a.length - 1].v : null; };
+function faStatement(y, f, tab, per) {
+  const d = f[per] || {};
+  const dates = faDates(Object.fromEntries(FA_LINES[tab].map(([k]) => [k, d[k] || []])), per);
+  if (!dates.length) return '<div class="empty">No statements available for this security.</div>';
+  const ttm = tab !== 'balance' && per === 'annual';
+  const lag = per === 'annual' ? 1 : 4;
+  const fmt = (v, kind) => !ok(v) ? '—' : kind === 'eps' ? nf(v, 2) : big(v);
+  let h = `<table class="fa"><thead><tr><th class="l">${per === 'annual' ? 'Fiscal year' : 'Quarter'} ending (${esc(Q[y]?.ccy || '')})</th>${dates.map(x => `<th>${x}</th>`).join('')}${ttm ? '<th>TTM</th>' : ''}<th>Trend</th><th>${per === 'annual' ? 'YoY' : 'YoY (Q vs Q-4)'}</th></tr></thead><tbody>`;
+  for (const [k, label, bold, kind] of FA_LINES[tab]) {
+    if (!d[k] || !d[k].length) continue;
+    const vals = dates.map(dt => faVal(d, k, dt));
+    const last = vals[vals.length - 1], prev = vals.length > lag ? vals[vals.length - 1 - lag] : null;
+    const yoy = ok(last) && ok(prev) && prev ? (last - prev) / Math.abs(prev) * 100 : null;
+    const tv = ttm ? faTtm(f, k) : null;
+    h += `<tr class="${bold ? 'b' : ''}"><td class="l">${label}</td>${vals.map(v => `<td class="${v < 0 ? 'dn' : ''}">${fmt(v, kind)}</td>`).join('')}${ttm ? `<td class="${tv < 0 ? 'dn' : 'amb'}">${fmt(tv, kind)}</td>` : ''}<td>${miniBars(vals)}</td><td class="${cls(yoy)}">${ok(yoy) ? pc(yoy, 1) : '—'}</td></tr>`;
+  }
+  return h + '</tbody></table>';
+}
+function faRatios(y, f, per) {
+  const d = f[per] || {}, A = per === 'annual' ? 1 : 4;
+  const dates = faDates({ r: d.TotalRevenue || [], e: d.StockholdersEquity || [] }, per);
+  if (!dates.length) return '<div class="empty">No statements available for this security.</div>';
+  const v = (k, i) => faVal(d, k, dates[i]);
+  const div = (a, b) => ok(a) && ok(b) && b ? a / b : null;
+  const lag = per === 'annual' ? 1 : 4;
+  const g = k => i => { const a = v(k, i), b = i >= lag ? v(k, i - lag) : null; return ok(a) && ok(b) && b ? (a - b) / Math.abs(b) : null; };
+  const avgEq = i => { const a = v('StockholdersEquity', i), b = i ? v('StockholdersEquity', i - 1) : null; return ok(a) && ok(b) ? (a + b) / 2 : a; };
+  const tax = i => { const t = div(v('TaxProvision', i), v('PretaxIncome', i)); return ok(t) ? Math.min(Math.max(t, 0), 0.5) : 0.21; };
+  const rows = [
+    ['Profitability'],
+    ['Gross margin', i => div(v('GrossProfit', i), v('TotalRevenue', i)), '%'], ['Operating margin', i => div(v('OperatingIncome', i), v('TotalRevenue', i)), '%'],
+    ['EBITDA margin', i => div(v('EBITDA', i), v('TotalRevenue', i)), '%'], ['Net margin', i => div(v('NetIncome', i), v('TotalRevenue', i)), '%'],
+    ['Free-cash-flow margin', i => div(v('FreeCashFlow', i), v('TotalRevenue', i)), '%'], ['Effective tax rate', i => div(v('TaxProvision', i), v('PretaxIncome', i)), '%'],
+    ['Returns' + (A > 1 ? ' (annualized)' : '')],
+    ['Return on equity', i => div(v('NetIncome', i) * A, avgEq(i)), '%'], ['Return on assets', i => div(v('NetIncome', i) * A, v('TotalAssets', i)), '%'],
+    ['Return on invested capital', i => div(v('OperatingIncome', i) * (1 - tax(i)) * A, v('InvestedCapital', i)), '%'],
+    ['Spending (% of revenue)'],
+    ['Research & development', i => div(v('ResearchAndDevelopment', i), v('TotalRevenue', i)), '%'], ['Capital expenditure', i => div(-v('CapitalExpenditure', i), v('TotalRevenue', i)), '%'],
+    ['Stock-based compensation', i => div(v('StockBasedCompensation', i), v('TotalRevenue', i)), '%'],
+    ['Balance sheet'],
+    ['Current ratio', i => div(v('CurrentAssets', i), v('CurrentLiabilities', i)), 'x'], ['Debt / equity', i => div(v('TotalDebt', i), v('StockholdersEquity', i)), 'x'],
+    ['Net debt / EBITDA', i => div(v('NetDebt', i) ?? (v('TotalDebt', i) - v('CashCashEquivalentsAndShortTermInvestments', i)), v('EBITDA', i) * A), 'x'],
+    ['Interest coverage (EBIT / interest)', i => div(v('EBIT', i), v('InterestExpense', i)), 'x'],
+    ['Growth (year over year)'],
+    ['Revenue', g('TotalRevenue'), '%'], ['Operating income', g('OperatingIncome'), '%'], ['Net income', g('NetIncome'), '%'], ['Diluted EPS', g('DilutedEPS'), '%'],
+    ['Free cash flow', g('FreeCashFlow'), '%'], ['Diluted share count', g('DilutedAverageShares'), '%'],
+    ['Shareholder returns'],
+    ['Buybacks + dividends / net income', i => div(-(v('RepurchaseOfCapitalStock', i) || 0) - (v('CashDividendsPaid', i) || 0), v('NetIncome', i)), '%'],
+    ['Dividend payout ratio', i => div(-v('CashDividendsPaid', i), v('NetIncome', i)), '%'],
+  ];
+  let h = `<table class="fa"><thead><tr><th class="l">${per === 'annual' ? 'Fiscal year' : 'Quarter'} ending</th>${dates.map(x => `<th>${x}</th>`).join('')}<th>Trend</th></tr></thead><tbody>`;
+  for (const [label, fn, kind] of rows) {
+    if (!fn) { h += `<tr class="grp"><td colspan="${dates.length + 2}">${label}</td></tr>`; continue; }
+    const vals = dates.map((_, i) => { const x = fn(i); return ok(x) ? x : null; });
+    if (!vals.some(ok)) continue;
+    h += `<tr><td class="l">${label}</td>${vals.map(x => `<td class="${kind === '%' ? cls(x) : ''}">${!ok(x) ? '—' : kind === '%' ? nf(x * 100, 1) + '%' : nf(x, 2) + 'x'}</td>`).join('')}<td>${miniBars(vals)}</td></tr>`;
+  }
+  return h + '</tbody></table>';
+}
+function faStats(y, s) {
+  const sd = s.summaryDetail || {}, ks = s.defaultKeyStatistics || {}, fd = s.financialData || {}, pr = s.price || {};
+  const n = (x, d = 2) => ok(rv(x)) ? nf(rv(x), d) : '—', b = x => ok(rv(x)) ? big(rv(x)) : '—', pct = x => ok(rv(x)) ? nf(rv(x) * 100, 2) + '%' : '—';
+  const dt = x => ok(rv(x)) ? new Date(rv(x) * 1000).toISOString().slice(0, 10) : '—';
+  const sec = (title, rows) => `<div class="box"><div class="t">${title}</div>${kv(rows)}</div>`;
+  return `<div class="pad"><div class="cols">` +
+    sec('Valuation measures', [['Market cap', b(sd.marketCap ?? pr.marketCap)], ['Enterprise value', b(ks.enterpriseValue)], ['Trailing P/E', n(sd.trailingPE)], ['Forward P/E', n(sd.forwardPE ?? ks.forwardPE)],
+      ['PEG ratio', n(ks.pegRatio ?? ks.trailingPegRatio)], ['Price / sales (ttm)', n(sd.priceToSalesTrailing12Months)], ['Price / book', n(ks.priceToBook)],
+      ['EV / revenue', n(ks.enterpriseToRevenue)], ['EV / EBITDA', n(ks.enterpriseToEbitda)]]) +
+    sec('Profitability & returns', [['Fiscal year ends', dt(ks.lastFiscalYearEnd)], ['Most recent quarter', dt(ks.mostRecentQuarter)], ['Profit margin', pct(fd.profitMargins ?? ks.profitMargins)],
+      ['Operating margin', pct(fd.operatingMargins)], ['Gross margin', pct(fd.grossMargins)], ['EBITDA margin', pct(fd.ebitdaMargins)], ['Return on assets', pct(fd.returnOnAssets)], ['Return on equity', pct(fd.returnOnEquity)]]) +
+    sec('Income statement (ttm)', [['Revenue', b(fd.totalRevenue)], ['Revenue per share', n(fd.revenuePerShare)], ['Quarterly revenue growth (yoy)', pct(fd.revenueGrowth)], ['Gross profit', b(fd.grossProfits)],
+      ['EBITDA', b(fd.ebitda)], ['Net income to common', b(ks.netIncomeToCommon)], ['Diluted EPS', n(ks.trailingEps)], ['Quarterly earnings growth (yoy)', pct(ks.earningsQuarterlyGrowth ?? fd.earningsGrowth)]]) +
+    sec('Balance sheet & cash flow', [['Total cash', b(fd.totalCash)], ['Cash per share', n(fd.totalCashPerShare)], ['Total debt', b(fd.totalDebt)], ['Debt / equity', ok(rv(fd.debtToEquity)) ? nf(rv(fd.debtToEquity), 1) + '%' : '—'],
+      ['Current ratio', n(fd.currentRatio)], ['Quick ratio', n(fd.quickRatio)], ['Book value per share', n(ks.bookValue)], ['Operating cash flow (ttm)', b(fd.operatingCashflow)], ['Levered free cash flow (ttm)', b(fd.freeCashflow)]]) +
+    sec('Stock price history', [['Beta (5Y monthly)', n(sd.beta ?? ks.beta)], ['52-week change', pct(ks['52WeekChange'])], ['S&P 500 52-week change', pct(ks.SandP52WeekChange)],
+      ['52-week high', n(sd.fiftyTwoWeekHigh)], ['52-week low', n(sd.fiftyTwoWeekLow)], ['50-day moving average', n(sd.fiftyDayAverage)], ['200-day moving average', n(sd.twoHundredDayAverage)],
+      ['Avg volume (3 month)', b(sd.averageVolume)], ['Avg volume (10 day)', b(sd.averageVolume10days)]]) +
+    sec('Share statistics', [['Shares outstanding', b(ks.sharesOutstanding)], ['Implied shares outstanding', b(ks.impliedSharesOutstanding)], ['Float', b(ks.floatShares)],
+      ['Held by insiders', pct(ks.heldPercentInsiders)], ['Held by institutions', pct(ks.heldPercentInstitutions)], ['Shares short', b(ks.sharesShort)], ['Short ratio (days)', n(ks.shortRatio)],
+      ['Short % of float', pct(ks.shortPercentOfFloat)], ['Shares short (prior month)', b(ks.sharesShortPriorMonth)]]) +
+    sec('Dividends & splits', [['Forward dividend rate', n(sd.dividendRate)], ['Forward dividend yield', pct(sd.dividendYield)], ['Trailing dividend rate', n(sd.trailingAnnualDividendRate)],
+      ['Trailing dividend yield', pct(sd.trailingAnnualDividendYield)], ['5-year average yield', ok(rv(sd.fiveYearAvgDividendYield)) ? nf(rv(sd.fiveYearAvgDividendYield), 2) + '%' : '—'],
+      ['Payout ratio', pct(sd.payoutRatio)], ['Ex-dividend date', dt(sd.exDividendDate)], ['Last split', ks.lastSplitFactor ? `${esc(ks.lastSplitFactor)} (${dt(ks.lastSplitDate)})` : '—']]) +
+    sec('Analysts', [['Recommendation', esc(String(fd.recommendationKey || '—').replace('_', ' ').toUpperCase())], ['Mean rating (1 = strong buy)', n(fd.recommendationMean)],
+      ['Analysts', n(fd.numberOfAnalystOpinions, 0)], ['Mean target', n(fd.targetMeanPrice)], ['Median target', n(fd.targetMedianPrice)], ['High / low target', `${n(fd.targetHighPrice)} / ${n(fd.targetLowPrice)}`]]) +
+    `</div></div>`;
+}
+function faEstimates(y, a) {
+  const tr = a.earningsTrend?.trend || [], eh = a.earningsHistory?.history || [], it = a.indexTrend, ce = a.calendarEvents?.earnings || {};
+  const P = { '0q': 'Current qtr', '+1q': 'Next qtr', '0y': 'Current year', '+1y': 'Next year' };
+  const cols = tr.filter(t => P[t.period]);
+  const n = (x, d = 2) => ok(rv(x)) ? nf(rv(x), d) : '—', pct = x => ok(rv(x)) ? pc(rv(x) * 100, 1) : '—';
+  const head = `<tr><th class="l"></th>${cols.map(t => `<th>${P[t.period]}<br><span class="dim">${esc(t.endDate || '')}</span></th>`).join('')}</tr>`;
+  const row = (label, f) => `<tr><td class="l">${label}</td>${cols.map(t => `<td>${f(t)}</td>`).join('')}</tr>`;
+  const next = (ce.earningsDate || []).map(rv).filter(ok);
+  let h = `<div class="pad">${next.length ? `<div class="hero"><span class="dim">Next earnings</span><span class="h">${next.map(t => new Date(t * 1000).toDateString()).join(' – ')}</span>${ok(rv(ce.earningsAverage)) ? `<span class="dim">EPS est. ${n(ce.earningsAverage)} (${n(ce.earningsLow)} – ${n(ce.earningsHigh)})</span>` : ''}${ok(rv(ce.revenueAverage)) ? `<span class="dim">Revenue est. ${big(rv(ce.revenueAverage))}</span>` : ''}</div>` : ''}`;
+  if (cols.length) {
+    h += `<div class="cols wide"><div class="box"><div class="t">Earnings estimate (EPS)</div><table>${head}<tbody>` +
+      row('No. of analysts', t => n(t.earningsEstimate?.numberOfAnalysts, 0)) + row('Average estimate', t => `<b>${n(t.earningsEstimate?.avg)}</b>`) + row('Low', t => n(t.earningsEstimate?.low)) +
+      row('High', t => n(t.earningsEstimate?.high)) + row('Year-ago EPS', t => n(t.earningsEstimate?.yearAgoEps)) + row('Growth', t => `<span class="${cls(rv(t.earningsEstimate?.growth))}">${pct(t.earningsEstimate?.growth)}</span>`) + '</tbody></table></div>' +
+      `<div class="box"><div class="t">Revenue estimate</div><table>${head}<tbody>` +
+      row('No. of analysts', t => n(t.revenueEstimate?.numberOfAnalysts, 0)) + row('Average estimate', t => `<b>${ok(rv(t.revenueEstimate?.avg)) ? big(rv(t.revenueEstimate.avg)) : '—'}</b>`) +
+      row('Low', t => ok(rv(t.revenueEstimate?.low)) ? big(rv(t.revenueEstimate.low)) : '—') + row('High', t => ok(rv(t.revenueEstimate?.high)) ? big(rv(t.revenueEstimate.high)) : '—') +
+      row('Year-ago sales', t => ok(rv(t.revenueEstimate?.yearAgoRevenue)) ? big(rv(t.revenueEstimate.yearAgoRevenue)) : '—') + row('Sales growth', t => `<span class="${cls(rv(t.revenueEstimate?.growth))}">${pct(t.revenueEstimate?.growth)}</span>`) + '</tbody></table></div>' +
+      `<div class="box"><div class="t">EPS trend <span class="dim">(how the estimate moved)</span></div><table>${head}<tbody>` +
+      row('Current estimate', t => `<b>${n(t.epsTrend?.current)}</b>`) + row('7 days ago', t => n(t.epsTrend?.['7daysAgo'])) + row('30 days ago', t => n(t.epsTrend?.['30daysAgo'])) +
+      row('60 days ago', t => n(t.epsTrend?.['60daysAgo'])) + row('90 days ago', t => n(t.epsTrend?.['90daysAgo'])) +
+      row('Change vs 90 days', t => { const c = rv(t.epsTrend?.current), o = rv(t.epsTrend?.['90daysAgo']); return ok(c) && ok(o) && o ? `<span class="${cls(c - o)}">${pc((c / o - 1) * 100, 1)}</span>` : '—'; }) + '</tbody></table></div>' +
+      `<div class="box"><div class="t">EPS revisions <span class="dim">(analysts raising / cutting)</span></div><table>${head}<tbody>` +
+      row('Up last 7 days', t => `<span class="up">${n(t.epsRevisions?.upLast7days, 0)}</span>`) + row('Up last 30 days', t => `<span class="up">${n(t.epsRevisions?.upLast30days, 0)}</span>`) +
+      row('Down last 7 days', t => `<span class="dn">${n(t.epsRevisions?.downLast7Days ?? t.epsRevisions?.downLast7days, 0)}</span>`) + row('Down last 30 days', t => `<span class="dn">${n(t.epsRevisions?.downLast30days, 0)}</span>`) + '</tbody></table></div></div>';
+  }
+  if (eh.length) {
+    h += `<div class="cols" style="margin-top:10px"><div class="box"><div class="t">Earnings history <span class="dim">(estimate vs reported)</span></div><table><thead><tr><th class="l">Quarter</th><th>Estimate</th><th>Actual</th><th>Difference</th><th>Surprise</th></tr></thead><tbody>` +
+      eh.map(x => `<tr><td class="l">${esc(x.quarter?.fmt || '')}</td><td>${n(x.epsEstimate)}</td><td><b>${n(x.epsActual)}</b></td><td class="${cls(rv(x.epsDifference))}">${n(x.epsDifference)}</td><td class="${cls(rv(x.surprisePercent))}">${pct(x.surprisePercent)}</td></tr>`).join('') +
+      `</tbody></table></div><div class="box"><div class="t">EPS: estimate vs actual</div><div class="chartwrap" style="min-height:170px"><canvas class="chart epsc"></canvas></div></div></div>`;
+  }
+  if (it?.estimates?.length) {
+    const own = Object.fromEntries(tr.map(t => [t.period, rv(t.growth)]));
+    h += `<div class="box" style="margin-top:10px"><div class="t">Growth estimates vs S&amp;P 500</div><table><thead><tr><th class="l"></th>${it.estimates.filter(e => P[e.period] || e.period === '+5y').map(e => `<th>${P[e.period] || 'Next 5 yrs (per year)'}</th>`).join('')}</tr></thead><tbody>
+      <tr><td class="l amb">${esc(shortOf(y))}</td>${it.estimates.filter(e => P[e.period] || e.period === '+5y').map(e => `<td class="${cls(own[e.period])}">${ok(own[e.period]) ? pc(own[e.period] * 100, 1) : '—'}</td>`).join('')}</tr>
+      <tr><td class="l">S&amp;P 500</td>${it.estimates.filter(e => P[e.period] || e.period === '+5y').map(e => `<td class="${cls(rv(e.growth))}">${pct(e.growth)}</td>`).join('')}</tr></tbody></table></div>`;
+  }
+  return cols.length || eh.length ? h + '</div>' : '<div class="empty">No analyst estimates for this security.</div>';
+}
+function faEpsChart(el, a) {
+  const eh = a.earningsHistory?.history || [];
+  const cv = $('canvas.epsc', el);
+  if (!cv || !eh.length) return;
+  mountChart(cv, { x: eh.map(x => x.quarter?.fmt || ''), dots: true, yf: v => nf(v, 2), s: [{ n: 'Actual', d: eh.map(x => rv(x.epsActual)), c: COLORS[3], w: 1.6 }, { n: 'Estimate', d: eh.map(x => rv(x.epsEstimate)), c: COLORS[1], w: 1.2 }] });
+}
+function faFilings(a) {
+  const fl = a.secFilings?.filings || [];
+  if (!fl.length) return '<div class="empty">No SEC filings listed for this security.</div>';
+  return `<table><thead><tr><th class="l">Date</th><th class="l">Form</th><th class="l">Description</th><th class="l">Documents</th></tr></thead><tbody>` +
+    fl.map(x => `<tr><td class="l">${esc(x.date)}</td><td class="l amb">${esc(x.type)}</td><td class="l"><a href="${esc(safeUrl(x.edgarUrl))}" target="_blank" rel="noopener noreferrer">${esc(x.title || '')} ↗</a></td>
+      <td class="l">${(x.exhibits || []).slice(0, 4).map(e => `<a class="dim" href="${esc(safeUrl(e.url))}" target="_blank" rel="noopener noreferrer">${esc(e.type)}</a>`).join(' · ')}</td></tr>`).join('') + '</tbody></table>';
+}
 
 // ---------------------------------------------------------------- ANR
 FN.ANR = {
@@ -3733,7 +4156,7 @@ FN.BOT = {
    ===================================================================== */
 const PANELS = [];
 let active = 0;
-const DEFAULTS = [{ fn: 'EDGE' }, { fn: 'WEI' }, { fn: 'GP', sec: '^GSPC' }, { fn: 'INSB' }];
+const DEFAULTS = [{ fn: 'EDGE' }, { fn: 'WEI' }, { fn: 'TV', sec: '^GSPC' }, { fn: 'WSB' }];
 class Panel {
   constructor(i) {
     this.i = i; this.hist = []; this.syms = []; this.seq = 0; this.cmdHist = store.get('ch' + i, []); this.chi = -1;
@@ -3946,7 +4369,7 @@ function pressKey(label) {
   p.inp.value = p.inp.value.trim() + ' ' + yk + ' ';
   p.inp.focus();
 }
-const LAUNCH = ['EDGE', 'WEI', 'MOST', 'INSB', 'UOA', 'WIRP', 'PRED', 'ECO', 'OIL', 'SHIP', 'FTRK', 'BTST', 'BOT', 'TOP', 'HELP'];
+const LAUNCH = ['EDGE', 'WEI', 'MOST', 'TOP', 'WSB', 'REDDIT', 'INSB', 'UOA', 'WIRP', 'PRED', 'ECO', 'OIL', 'SHIP', 'FTRK', 'BTST', 'BOT', 'HELP'];
 function buildChrome() {
   $('#launch').innerHTML = LAUNCH.map(f => `<button data-f="${f}" title="${esc(FN[f].d)}">${f}</button>`).join('');
   $('#launch').onclick = e => { const b = e.target.closest('[data-f]'); if (b) PANELS[active].run(b.dataset.f); };
