@@ -21,6 +21,7 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | US yield curve | U.S. Treasury daily par yield curve |
 | Top news | Yahoo Finance, CNBC, MarketWatch, Federal Reserve and SEC RSS feeds |
 | Live flights (ADS-B) | adsb.lol, falling back to airplanes.live, then OpenSky Network |
+| Aircraft lookup, military & emergency traffic, business jets, cargo hubs | adsb.lol and airplanes.live; flight routes from the adsb.lol route database; photos from planespotters.net |
 | Live ships & tankers (AIS) | aisstream.io (global, free key) or Fintraffic Digitraffic (Baltic, no key) |
 | Military sites | OpenStreetMap (`military=*` tags) via the Overpass API |
 | Satellite imagery | Esri World Imagery (high-res), NASA GIBS MODIS daily & VIIRS night lights |
@@ -87,6 +88,7 @@ N FED                   news search
 | `DVD` | Dividend and split history |
 | `COMP` | Normalized multi-security return chart |
 | `BMAP` | World map with toggleable layers: flights, ships, chokepoints and lanes, energy sites, military sites; dark, satellite, NASA daily or night-lights base maps |
+| `FTRK` (or `PLANE`) | Aircraft tracker: find a flight, tail number, ICAO hex or type (`FTRK UAL1`, `FTRK N628TS`, `FTRK B748`), track it with a trail and route, and browse military aircraft, emergency squawks, large business jets and cargo-hub activity |
 | `FLT`, `SHIP`, `MIL` | The map preset for live flights, live ships and tankers (with a tanker/cargo filter), or military sites. Add a region: `SHIP HORMUZ`, `FLT LONDON` |
 | `SAT` | Satellite imagery watchlist: mall and factory parking lots, aircraft storage, tank farms, ports |
 | `OIL` | Oil monitor: WTI/Brent futures curves, US inventories and SPR, proved reserves, chokepoints, energy stocks |
@@ -101,9 +103,41 @@ N FED                   news search
 | `PRED`, `SENT` | Prediction-market odds (macro, politics, geopolitics, crypto); Fear & Greed and Reddit trending tickers |
 | `ECO`, `EARN` | This week's economic calendar; earnings calendar by date |
 | `TRACK`, `TANK` | Follow specific ships (search, trails); Baltic tanker flow at Russian export ports |
+| `BTST` | Strategy backtester: write a strategy in JavaScript, test it on one or more symbols (`BTST AAPL`), see equity vs buy & hold, trades and statistics, and optimize parameters with an out-of-sample check |
+| `BOT` | Trading bots: run a strategy live on completed bars; it trades the paper portfolio |
 | `W` | Watchlist |
 | `PORT` | Paper portfolio: P&L, positions, blotter ($1M starting cash) |
 | `SECF`, `HELP`, `MENU` | Search, function directory, back |
+
+## Strategies and bots
+
+`BTST` opens an editor with a strategy written in plain JavaScript. `onBar()` runs once per bar after it closes, and orders fill at the next bar's open, so a strategy can never see the future:
+
+```js
+const FAST = param('fast', 20, 5, 100, 5);   // name, default, min, max, step
+const SLOW = param('slow', 50, 20, 250, 10);
+
+function onBar() {
+  const fast = sma(close, FAST), slow = sma(close, SLOW);
+  plot(fast, 'SMA fast'); plot(slow, 'SMA slow');
+  if (crossover(fast, slow)) buy({ stop: 0.08 });
+  if (crossunder(fast, slow)) sell();
+}
+```
+
+- **Built-in functions:**
+  - Indicators: `sma`, `ema`, `wma`, `rsi`, `macd`, `bbands`, `atr`, `stoch`, `vwap`, `obv`, `highest`/`lowest`.
+  - Orders: `buy`, `sell`, `short`, `cover`, `target(x)` and `exit`, with stop-loss, take-profit and trailing-stop exits.
+  - Charting and logging: `plot`, `plotLower`, `log`.
+
+  The API REFERENCE tab lists everything. There are eight templates to start from.
+- **Settings:** commission, slippage, fill at the next open or the same close, and dividend-adjusted prices. The history can be daily, weekly, hourly or intraday.
+- **Optimization:** sweeps the parameters declared with `param()`. It ranks the combinations on the first part of the history, then reports how each one did on the remaining bars it never saw, plus a rank correlation that flags overfitting.
+- **Safety:** strategy code runs in a Web Worker (`engine.js`). An endless loop is stopped after 30 seconds without freezing the terminal.
+- **Bots:** **MAKE BOT** turns the strategy into a bot (`BOT`). On every completed bar (1 min to daily), a bot replays the strategy on the latest history. When the strategy's position changes, the bot trades its allocation in the paper portfolio at the live price, and each fill is tagged with the bot's name in `PORT`.
+- **Bot limits:** bots run in your browser, so they only trade while the terminal is open in a tab. They are paper trading only.
+
+Strategies, bots and tracked aircraft are stored in your browser's localStorage. `engine.js` can also be `require()`d from Node to run backtests outside the browser; `npm test` runs its tests.
 
 **Keys:** `F1` help · `F2`–`F11` market-sector keys (GOVT … CRNCY) · `Esc` cancel · `Alt+←` back · `Tab` or `Alt+1…4` switch panel · `↑/↓` autocomplete and command history · `PgUp/PgDn` scroll.
 

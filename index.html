@@ -205,6 +205,52 @@ label.chk input{accent-color:var(--amber);margin:0}
 .hbar .b{height:10px;background:linear-gradient(90deg,var(--amber2),var(--amber));border-radius:2px}
 .hbar .v{color:var(--dim);font-size:11px}
 
+/* ---------- aircraft tracker ---------- */
+.acinfo{display:flex;gap:12px;align-items:center;padding:6px 10px;border-top:1px solid var(--line);background:linear-gradient(90deg,#121826,#0b0e14);flex:0 0 auto}
+.acph{flex:0 0 auto;display:flex;flex-direction:column;align-items:center}
+.acph img{display:block;height:64px;border-radius:4px;border:1px solid var(--line2)}
+.acph small{font-size:9px;color:var(--faint)}
+.acd{flex:1;min-width:0;line-height:1.6}.acd>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acb{display:flex;gap:4px;flex:0 0 auto}
+tr.selrow td{background:rgba(255,166,43,.1)!important}
+/* ---------- strategy backtester ---------- */
+.bt{display:flex;flex-direction:column;height:100%;container-type:inline-size}
+.bt .bar.sub{padding-top:4px;padding-bottom:4px}
+.inp.num{text-align:right}
+.dirty{color:var(--yel);font-size:10px;min-width:0}
+.bt .split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(330px,42%) 1fr}
+.bt .edcol,.bt .rescol{min-height:0;overflow:auto;display:flex;flex-direction:column}
+.bt .edcol{border-right:1px solid var(--line)}
+.ed{position:relative;flex:1 1 auto;min-height:280px;display:flex;background:#05060a;font:12px/18px var(--mono)}
+.ed .gut{flex:0 0 auto;min-width:38px;padding:8px 8px 8px 6px;text-align:right;color:var(--faint);user-select:none;overflow:hidden;white-space:pre;border-right:1px solid var(--line);font:inherit}
+.ed .gut b{font-weight:700}
+.ed .edin{position:relative;flex:1;min-width:0}
+.ed .hl,.ed textarea{position:absolute;inset:0;margin:0;padding:8px 10px;font:inherit;letter-spacing:0;white-space:pre;tab-size:2;overflow:auto;border:0;box-sizing:border-box}
+.ed .hl{pointer-events:none;color:#d6dae2;overflow:hidden}
+.ed textarea{background:transparent;color:transparent;caret-color:var(--amber);resize:none;outline:none;-webkit-text-fill-color:transparent}
+.ed textarea::selection{background:rgba(255,166,43,.28)}
+.hl i{font-style:normal}.hl .c{color:#5f6b7a;font-style:italic}.hl .s{color:#9ece6a}.hl .n{color:#ff9e64}.hl .k{color:#c099ff}.hl .f{color:var(--amber)}
+.params{border-top:1px solid var(--line);padding:6px 10px;flex:0 0 auto}
+.params .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.pgrid{display:flex;flex-wrap:wrap;gap:6px 14px}
+.pgrid label{display:flex;align-items:center;gap:6px;color:var(--dim)}
+.con{flex:0 0 auto;border-top:1px solid var(--line);padding:6px 10px;font-size:11px;max-height:120px;overflow:auto}
+.con:empty{display:none}
+.cbox{border-top:1px solid var(--line);flex:0 0 auto}
+.cbox .ct{padding:5px 10px 0;font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.04em}
+.cbox .chartwrap{height:210px;min-height:0}.cbox .chartwrap.sm{height:130px}
+.bt .kpis{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
+.bt .kpi .big{font-size:18px}
+.bt .multi:not(:empty){border-bottom:1px solid var(--line);max-height:200px;overflow:auto}
+.btab{flex:0 0 auto}
+.apidoc code{color:var(--amber);font:11px var(--mono);white-space:nowrap}
+.apidoc td{vertical-align:top}
+.optp{width:auto;min-width:60%}.optp td,.optp th{text-align:center}
+@container (max-width:820px){
+  .bt .split{display:block;overflow:auto}
+  .bt .edcol{border-right:0;overflow:visible}.bt .rescol{overflow:visible}
+  .ed{height:340px;flex:none}
+}
 /* ---------- edge widgets ---------- */
 .cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
@@ -482,6 +528,7 @@ function setConn(live, msg, noData) {
 function wanted() {
   const s = new Set(TAPE);
   PANELS.forEach(p => (p.syms || []).forEach(x => x && s.add(x)));
+  BOTS.forEach(b => b.on && s.add(b.sym));
   return [...s];
 }
 let polling = false, pollAgain = false;
@@ -703,9 +750,12 @@ const START_CASH = 1_000_000;
 let PF = store.get('pf', null) || { cash: START_CASH, pos: {}, fills: [], realized: 0 };
 let WL = store.get('wl', null) || ['^GSPC', '^IXIC', 'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'EURUSD=X', 'GC=F', 'CL=F', 'BTC-USD'];
 const savePF = () => store.set('pf', PF), saveWL = () => store.set('wl', WL);
-async function trade(side, y, qty) {
-  qty = Math.floor(Math.abs(qty));
-  if (!qty) throw new Error('Quantity must be a positive whole number');
+// Crypto and FX trade in fractional units; everything else in whole shares/contracts
+const isFracSym = y => /-USD$|=X$/.test(y);
+const qf = q => nf(q, Math.abs(q % 1) > 1e-9 ? 4 : 0);
+async function trade(side, y, qty, tag) {
+  qty = isFracSym(y) ? Math.floor(Math.abs(qty) * 1e6) / 1e6 : Math.floor(Math.abs(qty));
+  if (!qty) throw new Error(isFracSym(y) ? 'Quantity must be positive' : 'Quantity must be a positive whole number');
   if (isYield(y)) throw new Error('Yield indices are not tradable');
   const q = await ensureQuote(y);
   if (!q) throw new Error('No live price for ' + y);
@@ -715,17 +765,17 @@ async function trade(side, y, qty) {
   const pos = PF.pos[y] || { q: 0, avg: 0 };
   if (pos.q === 0 || Math.sign(pos.q) === Math.sign(signed)) {
     pos.avg = (pos.avg * Math.abs(pos.q) + px * qty) / (Math.abs(pos.q) + qty);
-    pos.q += signed;
+    pos.q = Math.round((pos.q + signed) * 1e6) / 1e6;
   } else {
     const closing = Math.min(qty, Math.abs(pos.q));
     PF.realized += (px - pos.avg) * closing * Math.sign(pos.q);
-    const nq = pos.q + signed;
+    const nq = Math.round((pos.q + signed) * 1e6) / 1e6;
     if (Math.sign(nq) !== Math.sign(pos.q) && nq !== 0) pos.avg = px;
     pos.q = nq;
   }
   if (pos.q === 0) delete PF.pos[y]; else PF.pos[y] = pos;
   PF.cash -= signed * px;
-  PF.fills.unshift({ t: Date.now(), side, y, qty, px });
+  PF.fills.unshift({ t: Date.now(), side, y, qty, px, ...(tag ? { tag } : {}) });
   PF.fills = PF.fills.slice(0, 500);
   savePF();
   return { px, qty, side };
@@ -755,7 +805,8 @@ const HELP_GROUPS = [
   ['Security Analysis', ['DES', 'GP', 'GIP', 'HP', 'Q', 'FA', 'ANR', 'DVD', 'COMP']],
   ['Edge: Insiders, Flow & Positioning', ['EDGE', 'INSB', 'INSD', 'CONG', 'HDS', 'OMON', 'UOA', 'SI', 'SHRT']],
   ['Macro, Events & Sentiment', ['WIRP', 'ECST', 'PRED', 'SENT', 'ECO', 'EARN']],
-  ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'SHIP', 'TRACK', 'TANK', 'SAT', 'OIL', 'MIL']],
+  ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'FTRK', 'SHIP', 'TRACK', 'TANK', 'SAT', 'OIL', 'MIL']],
+  ['Strategies & Bots', ['BTST', 'BOT']],
   ['Portfolio & Lists', ['W', 'PORT', 'BUY', 'SELL']],
   ['Navigation', ['SECF', 'MENU', 'HELP']],
 ];
@@ -1316,7 +1367,7 @@ FN.Q = {
   },
   m(p, el, y) {
     $$('[data-side]', el).forEach(b => b.onclick = async () => {
-      try { const r = await trade(b.dataset.side, y, parseFloat($('#qty', el).value)); p.msg(`FILLED: ${r.side} ${nf(r.qty, 0)} ${y} @ ${nf(r.px, dec(y, r.px))}`, true); draw(); }
+      try { const r = await trade(b.dataset.side, y, parseFloat($('#qty', el).value)); p.msg(`FILLED: ${r.side} ${qf(r.qty)} ${y} @ ${nf(r.px, dec(y, r.px))}`, true); draw(); }
       catch (e) { p.msg(e.message); }
     });
     $('#qty', el).onkeydown = e => e.stopPropagation();
@@ -1471,7 +1522,7 @@ FN.PORT = {
     $$('[data-side]', el).forEach(b => b.onclick = async () => {
       const y = resolve($('#tsym', el).value.toUpperCase().trim().split(/\s+/));
       if (!y) return p.msg('Enter a security');
-      try { const r = await trade(b.dataset.side, y, parseFloat($('#tqty', el).value)); p.msg(`FILLED: ${r.side} ${nf(r.qty, 0)} ${y} @ ${nf(r.px, dec(y, r.px))}`, true); p.rerender(); }
+      try { const r = await trade(b.dataset.side, y, parseFloat($('#tqty', el).value)); p.msg(`FILLED: ${r.side} ${qf(r.qty)} ${y} @ ${nf(r.px, dec(y, r.px))}`, true); p.rerender(); }
       catch (e) { p.msg(e.message); }
     });
     $$('.inp', el).forEach(i => i.onkeydown = e => e.stopPropagation());
@@ -1488,11 +1539,11 @@ FN.PORT = {
       $('.sum', el).innerHTML = `<div class="cols">${kv([['Total Equity', `<span class="big">${nf(eq)}</span>`], ['Cash', nf(PF.cash)], ['Market Value', nf(mv)]])}${kv([['Total P&L', `<span class="${cls(tot)}">${sgn(tot)} (${pc(tot / START_CASH * 100)})</span>`], ['Unrealized', `<span class="${cls(unr)}">${sgn(unr)}</span>`], ['Realized', `<span class="${cls(PF.realized)}">${sgn(PF.realized)}</span>`], ['Today', `<span class="${cls(day)}">${sgn(day)}</span>`]])}</div>`;
       p.actions = rows.map(r => disp(r.y) + ' Q');
       $('.pos', el).innerHTML = rows.length ? '<table><thead><tr><th></th><th class="l">Security</th><th>Position</th><th>Avg Cost</th><th>Last</th><th>%Chg Day</th><th>Mkt Value</th><th>Unreal. P&L</th><th>Unreal. %</th><th>Day P&L</th><th>Weight</th></tr></thead><tbody>' +
-        rows.map((r, i) => `<tr class="clk" data-cmd="${esc(disp(r.y))} Q"><td class="n">${i + 1})</td><td class="l amb">${esc(disp(r.y))}</td><td>${nf(r.pos.q, 0)}</td><td>${nf(r.pos.avg, dec(r.y, r.pos.avg))}</td><td>${L(r.y, 'price')}</td><td>${L(r.y, 'pct')}</td><td>${nf(r.v)}</td><td class="${cls(r.u)}">${sgn(r.u)}</td><td class="${cls(r.u)}">${ok(r.u) ? pc(r.u / Math.abs(r.pos.avg * r.pos.q) * 100) : '—'}</td><td class="${cls(r.d)}">${sgn(r.d)}</td><td>${ok(r.v) && eq ? nf(Math.abs(r.v) / eq * 100, 1) + '%' : '—'}</td></tr>`).join('') + '</tbody></table>'
+        rows.map((r, i) => `<tr class="clk" data-cmd="${esc(disp(r.y))} Q"><td class="n">${i + 1})</td><td class="l amb">${esc(disp(r.y))}</td><td>${qf(r.pos.q)}</td><td>${nf(r.pos.avg, dec(r.y, r.pos.avg))}</td><td>${L(r.y, 'price')}</td><td>${L(r.y, 'pct')}</td><td>${nf(r.v)}</td><td class="${cls(r.u)}">${sgn(r.u)}</td><td class="${cls(r.u)}">${ok(r.u) ? pc(r.u / Math.abs(r.pos.avg * r.pos.q) * 100) : '—'}</td><td class="${cls(r.d)}">${sgn(r.d)}</td><td>${ok(r.v) && eq ? nf(Math.abs(r.v) / eq * 100, 1) + '%' : '—'}</td></tr>`).join('') + '</tbody></table>'
         : '<div class="empty">No positions. Use the ticket above, the Q function, or type e.g. <span class="amb">BUY 100 AAPL</span> &lt;GO&gt;.</div>';
     };
-    $('.fills', el).innerHTML = PF.fills.length ? '<table><thead><tr><th class="l">Time</th><th class="l">Side</th><th class="l">Security</th><th>Qty</th><th>Price</th><th>Notional</th></tr></thead><tbody>' +
-      PF.fills.slice(0, 200).map(f => `<tr><td class="l dim">${new Date(f.t).toLocaleString()}</td><td class="l ${f.side === 'BUY' ? 'up' : 'dn'}">${f.side}</td><td class="l amb">${esc(disp(f.y))}</td><td>${nf(f.qty, 0)}</td><td>${nf(f.px, dec(f.y, f.px))}</td><td>${nf(f.px * f.qty)}</td></tr>`).join('') + '</tbody></table>' : '<div class="empty">No fills yet.</div>';
+    $('.fills', el).innerHTML = PF.fills.length ? '<table><thead><tr><th class="l">Time</th><th class="l">Side</th><th class="l">Security</th><th>Qty</th><th>Price</th><th>Notional</th><th class="l">Source</th></tr></thead><tbody>' +
+      PF.fills.slice(0, 200).map(f => `<tr><td class="l dim">${new Date(f.t).toLocaleString()}</td><td class="l ${f.side === 'BUY' ? 'up' : 'dn'}">${f.side}</td><td class="l amb">${esc(disp(f.y))}</td><td>${qf(f.qty)}</td><td>${nf(f.px, dec(f.y, f.px))}</td><td>${nf(f.px * f.qty)}</td><td class="l dim">${esc(f.tag || 'manual')}</td></tr>`).join('') + '</tbody></table>' : '<div class="empty">No fills yet.</div>';
     draw();
     p.tick = draw;
   },
@@ -1589,6 +1640,23 @@ const gibsDate = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 const MAP_LAYERS = [['flights', 'Flights'], ['ships', 'Ships'], ['lanes', 'Chokepoints & lanes'], ['energy', 'Energy sites'], ['bases', 'Military sites']];
 const MAP_BASES = [['dark', 'Dark map'], ['sat', 'Satellite (hi-res)'], ['modis', 'Satellite (daily, NASA)'], ['night', 'Night lights (NASA)']];
 
+function mapBases(L) {
+  const tl = (url, o) => L.tileLayer(url, { maxZoom: 19, ...o });
+  return {
+    dark: tl('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', attribution: '© OpenStreetMap contributors © CARTO' }),
+    sat: L.layerGroup([
+      tl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }),
+      tl('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { opacity: 0.85 }),
+    ]),
+    modis: tl(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${gibsDate()}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`, { maxNativeZoom: 9, maxZoom: 13, attribution: `NASA GIBS · MODIS Terra true color ${gibsDate()}` }),
+    night: tl('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png', { maxNativeZoom: 8, maxZoom: 13, attribution: 'NASA Black Marble (VIIRS night lights)' }),
+  };
+}
+const planeIcons = {};
+function planeIconFor(L, a, color) {
+  const c = color || altColor(a), r = Math.round((a.trk || 0) / 5) * 5, k = c + r;
+  return planeIcons[k] || (planeIcons[k] = L.divIcon({ className: 'acicon', iconSize: [18, 18], iconAnchor: [9, 9], html: `<div style="transform:rotate(${r}deg)"><svg viewBox="0 0 24 24" width="18" height="18"><path d="${PLANE_PATH}" fill="${c}" stroke="#000" stroke-width=".7"/></svg></div>` }));
+}
 function mapState(arg, def) {
   let st = arg && typeof arg === 'object' ? { ...arg } : {};
   if (typeof arg === 'string' && arg) {
@@ -1634,16 +1702,7 @@ async function initMap(p, el, st) {
   ro.observe(node);
   p.cleanup = () => { ro.disconnect(); map.remove(); };
 
-  const tl = (url, o) => L.tileLayer(url, { maxZoom: 19, ...o });
-  const bases = {
-    dark: tl('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', attribution: '© OpenStreetMap contributors © CARTO' }),
-    sat: L.layerGroup([
-      tl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }),
-      tl('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { opacity: 0.85 }),
-    ]),
-    modis: tl(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${gibsDate()}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`, { maxNativeZoom: 9, maxZoom: 13, attribution: `NASA GIBS · MODIS Terra true color ${gibsDate()}` }),
-    night: tl('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png', { maxNativeZoom: 8, maxZoom: 13, attribution: 'NASA Black Marble (VIIRS night lights)' }),
-  };
+  const bases = mapBases(L);
   let baseLayer = bases[st.base] || bases.dark;
   baseLayer.addTo(map);
 
@@ -1721,11 +1780,7 @@ async function initMap(p, el, st) {
     return `s=${Math.max(-90, b.getSouth()).toFixed(2)}&w=${Math.max(-180, cw - half).toFixed(2)}&n=${Math.min(90, b.getNorth()).toFixed(2)}&e=${Math.min(180, cw + half).toFixed(2)}`;
   };
   const time = () => { const d = new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
-  const planeIcons = {};
-  const planeIcon = a => {
-    const c = altColor(a), r = Math.round((a.trk || 0) / 5) * 5, k = c + r;
-    return planeIcons[k] || (planeIcons[k] = L.divIcon({ className: 'acicon', iconSize: [18, 18], iconAnchor: [9, 9], html: `<div style="transform:rotate(${r}deg)"><svg viewBox="0 0 24 24" width="18" height="18"><path d="${PLANE_PATH}" fill="${c}" stroke="#000" stroke-width=".7"/></svg></div>` }));
-  };
+  const planeIcon = a => planeIconFor(L, a);
 
   let flSeq = 0, shSeq = 0, bsSeq = 0;
   async function loadFlights() {
@@ -1740,7 +1795,14 @@ async function initMap(p, el, st) {
       data.flights = d.ac;
       G.flights.clearLayers();
       d.ac.forEach(a => tip(L.marker([a.lat, a.lon], { icon: planeIcon(a), keyboard: false }),
-        `<b>${esc(a.cs || a.hex)}</b>${a.mil ? ' <span class="dn">MILITARY</span>' : ''}<br>${esc([a.reg, a.type, a.desc].filter(Boolean).join(' · '))}${a.op ? '<br>' + esc(a.op) : ''}<br>${a.gnd ? 'On ground' : `${ok(a.alt) ? nf(a.alt, 0) + ' ft' : '—'} · ${ok(a.gs) ? nf(a.gs, 0) + ' kt' : '—'} · ${ok(a.trk) ? nf(a.trk, 0) + '°' : ''}`}${a.sq ? '<br>Squawk ' + esc(a.sq) : ''}`).addTo(G.flights));
+        `<b>${esc(a.cs || a.hex)}</b>${a.mil ? ' <span class="dn">MILITARY</span>' : ''}<br>${esc([a.reg, a.type, a.desc].filter(Boolean).join(' · '))}${a.op ? '<br>' + esc(a.op) : ''}<br>${a.gnd ? 'On ground' : `${ok(a.alt) ? nf(a.alt, 0) + ' ft' : '—'} · ${ok(a.gs) ? nf(a.gs, 0) + ' kt' : '—'} · ${ok(a.trk) ? nf(a.trk, 0) + '°' : ''}`}${a.sq ? '<br>Squawk ' + esc(a.sq) : ''}<br><span class="yel">${isTracked(a.hex) ? 'tracked — open FTRK' : 'click to track'}</span>`)
+        .on('click', () => { try { trackPlane(a); p.msg(`Tracking ${acName(a)} — open FTRK to follow it`, true); } catch (e) { p.msg(e.message); } })
+        .addTo(G.flights));
+      recordPlanes(d.ac); savePtrk();
+      PTRK.forEach(t => {
+        trailSegs(PTRK_HIST[t.hex] || []).forEach(seg => L.polyline(seg, { color: '#ffd84d', weight: 2, opacity: 0.85 }).addTo(G.flights));
+        if (t.last && t.last.lat != null) L.circleMarker([t.last.lat, t.last.lon], { radius: 11, color: '#ffd84d', weight: 2, fill: false, interactive: false }).addTo(G.flights);
+      });
       const mil = d.ac.filter(a => a.mil).length;
       status.flights = `${d.ac.length} aircraft${mil ? ` (${mil} military)` : ''} within ${Math.round(r)} nm · ${esc(d.src)} · ${time()}`;
     } catch (e) { if (my === flSeq) status.flights = `<span class="dn">${esc(e.message)}</span>`; }
@@ -1805,7 +1867,7 @@ async function initMap(p, el, st) {
     saveView(); legend(); drawStatus(); drawList();
   });
   let mt = null;
-  map.on('moveend', () => { saveView(); drawStatus(); clearTimeout(mt); mt = setTimeout(() => { loadFlights(); loadShips(); loadBases(); drawList(); }, 450); });
+  map.on('moveend', () => { saveView(); drawStatus(); clearTimeout(mt); mt = setTimeout(() => { if (!p.alive(el)) return; loadFlights(); loadShips(); loadBases(); drawList(); }, 450); });
 
   legend(); drawStatus();
   loadFlights(); loadShips(); loadBases();
@@ -2521,6 +2583,271 @@ FN.TANK = {
   },
 };
 
+// ---------------------------------------------------------------- FTRK: aircraft tracking
+let PTRK = store.get('ptrk', []);               // [{ hex, label, last }]
+const PTRK_HIST = store.get('ptrk.hist', {});    // hex -> [[t, lat, lon, alt]]
+const savePtrk = () => { store.set('ptrk', PTRK); store.set('ptrk.hist', PTRK_HIST); };
+const acName = a => a.cs || a.reg || String(a.hex || '').toUpperCase();
+// ICAO 24-bit address blocks -> state of registry: [first, last, country]
+const ICAO_CC = [[0x008000, 0x00FFFF, 'South Africa'], [0x010000, 0x017FFF, 'Egypt'], [0x06A000, 0x06A3FF, 'Qatar'], [0x0D0000, 0x0D7FFF, 'Mexico'], [0x100000, 0x1FFFFF, 'Russia'],
+  [0x300000, 0x33FFFF, 'Italy'], [0x340000, 0x37FFFF, 'Spain'], [0x380000, 0x3BFFFF, 'France'], [0x3C0000, 0x3FFFFF, 'Germany'], [0x400000, 0x43FFFF, 'United Kingdom'],
+  [0x440000, 0x447FFF, 'Austria'], [0x448000, 0x44FFFF, 'Belgium'], [0x458000, 0x45FFFF, 'Denmark'], [0x460000, 0x467FFF, 'Finland'], [0x468000, 0x46FFFF, 'Greece'],
+  [0x470000, 0x477FFF, 'Hungary'], [0x478000, 0x47FFFF, 'Norway'], [0x480000, 0x487FFF, 'Netherlands'], [0x488000, 0x48FFFF, 'Poland'], [0x490000, 0x497FFF, 'Portugal'],
+  [0x498000, 0x49FFFF, 'Czechia'], [0x4A0000, 0x4A7FFF, 'Romania'], [0x4A8000, 0x4AFFFF, 'Sweden'], [0x4B0000, 0x4B7FFF, 'Switzerland'], [0x4B8000, 0x4BFFFF, 'Turkey'],
+  [0x4CA000, 0x4CAFFF, 'Ireland'], [0x508000, 0x50FFFF, 'Ukraine'], [0x710000, 0x717FFF, 'Saudi Arabia'], [0x718000, 0x71FFFF, 'South Korea'], [0x730000, 0x737FFF, 'Iran'],
+  [0x738000, 0x73FFFF, 'Israel'], [0x760000, 0x767FFF, 'Pakistan'], [0x768000, 0x76FFFF, 'Singapore'], [0x780000, 0x7BFFFF, 'China'], [0x7C0000, 0x7FFFFF, 'Australia'],
+  [0x800000, 0x83FFFF, 'India'], [0x840000, 0x87FFFF, 'Japan'], [0x880000, 0x887FFF, 'Thailand'], [0x896000, 0x896FFF, 'UAE'], [0x899000, 0x8993FF, 'Taiwan'],
+  [0xA00000, 0xAFFFFF, 'United States'], [0xC00000, 0xC3FFFF, 'Canada'], [0xC80000, 0xC87FFF, 'New Zealand'], [0xE00000, 0xE3FFFF, 'Argentina'], [0xE40000, 0xE7FFFF, 'Brazil'], [0xE80000, 0xE80FFF, 'Chile']];
+function icaoCountry(hex) {
+  if (!/^[0-9a-f]{6}$/i.test(hex || '')) return '';
+  const n = parseInt(hex, 16), r = ICAO_CC.find(([a, b]) => n >= a && n <= b);
+  return r ? r[2] : '';
+}
+const SQK = { 7500: 'HIJACK', 7600: 'RADIO FAILURE', 7700: 'EMERGENCY' };
+const isTracked = hex => PTRK.some(t => t.hex === hex);
+function trackPlane(a) {
+  if (!isTracked(a.hex)) {
+    if (PTRK.length >= 30) throw new Error('You can track up to 30 aircraft — untrack one first');
+    PTRK.push({ hex: a.hex, label: acName(a) });
+  }
+  recordPlanes([a]); savePtrk();
+}
+function untrackPlane(hex) { PTRK = PTRK.filter(t => t.hex !== hex); delete PTRK_HIST[hex]; savePtrk(); }
+const sqAlerted = {};
+function recordPlanes(list) {
+  for (const a of list) {
+    const t = PTRK.find(x => x.hex === a.hex);
+    if (!t) continue;
+    t.label = acName(a) || t.label;
+    t.last = { ...a, at: Date.now() - (a.seen || 0) * 1000 };
+    if (SQK[a.sq] && sqAlerted[a.hex] !== a.sq) { sqAlerted[a.hex] = a.sq; PANELS[active]?.msg(`Tracked aircraft ${t.label} is squawking ${a.sq} (${SQK[a.sq]})`); }
+    if (a.lat == null) continue;
+    const h = (PTRK_HIST[a.hex] ||= []), prev = h[h.length - 1];
+    if (!prev || Math.abs(prev[1] - a.lat) > 2e-3 || Math.abs(prev[2] - a.lon) > 2e-3) h.push([Date.now(), +a.lat.toFixed(4), +a.lon.toFixed(4), a.gnd ? 0 : a.alt ?? null]);
+    if (h.length > 400) h.splice(0, h.length - 400);
+  }
+}
+// Tracked aircraft are refreshed in the background so their trails keep recording while the terminal is open
+let ptrkAt = 0;
+async function refreshPlanes(force) {
+  if (!PTRK.length || (!force && Date.now() - ptrkAt < 20e3)) return null;
+  ptrkAt = Date.now();
+  try { const d = await api('airhex?hex=' + PTRK.map(t => t.hex).join(',')); recordPlanes(d.ac); savePtrk(); return d; } catch { return null; }
+}
+setInterval(() => { if (!document.hidden) refreshPlanes(); }, 20e3);
+// Trail segments, split where the aircraft went unseen for 30+ minutes (e.g. between flights)
+function trailSegs(h) {
+  const segs = []; let cur = [];
+  h.forEach((x, k) => { if (k && x[0] - h[k - 1][0] > 30 * 60e3) { segs.push(cur); cur = []; } cur.push([x[1], x[2]]); });
+  segs.push(cur);
+  return segs.filter(s => s.length > 1);
+}
+const HUB_HIST = store.get('hubs.hist', {});
+
+const FTRK_TABS = [['tracked', 'TRACKED'], ['find', 'SEARCH'], ['mil', 'MILITARY'], ['sq', 'EMERGENCIES'], ['biz', 'BIZJETS'], ['hubs', 'CARGO HUBS']];
+FN.FTRK = {
+  d: 'Aircraft tracker: follow flights & tail numbers; military, emergencies, bizjets, cargo hubs', cat: 'geo',
+  r(p, y, arg) {
+    const st = p.cur.arg = arg && typeof arg === 'object' ? arg : { tab: arg ? 'find' : PTRK.length ? 'tracked' : 'mil', q: typeof arg === 'string' ? arg : '' };
+    p.title = 'Aircraft Tracker — ADS-B';
+    return `<div class="geo ftrk">
+      <div class="bar"><input class="inp" id="fq" size="20" placeholder="flight, tail no., hex or type" value="${esc(st.q || '')}"><button class="btn" id="fg">FIND</button>
+        ${FTRK_TABS.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-tab="${k}">${l}${k === 'tracked' ? ` (${PTRK.length})` : ''}</button>`).join('')}
+        <select class="inp" data-base title="Base map" style="margin-left:auto">${MAP_BASES.map(([k, l]) => `<option value="${k}" ${k === (st.base || 'dark') ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="mapwrap"><div class="map"><div class="empty spin"></div></div></div>
+      <div class="acinfo" style="display:none"></div>
+      <div class="geostat"></div>
+      <div class="geolist ftl"></div>
+    </div>`;
+  },
+  m(p, el) { initFtrk(p, el, p.cur.arg); },
+};
+FN.PLANE = { ...FN.FTRK, d: 'Aircraft tracker (alias of FTRK)' };
+
+async function initFtrk(p, el, st) {
+  const save = () => store.set('panel' + p.i, p.cur);
+  const fq = $('#fq', el);
+  const find = () => { const q = fq.value.trim(); if (!q) return; st.tab = 'find'; st.q = q; st.c = null; save(); p.rerender(); };
+  $('#fg', el).onclick = find;
+  fq.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') find(); };
+  $$('[data-tab]', el).forEach(b => b.onclick = () => { st.tab = b.dataset.tab; if (st.tab !== 'find') st.c = null; save(); p.rerender(); });
+
+  let L;
+  try { L = await loadLeaflet(); } catch (e) { return fail(el, e, '.map'); }
+  if (!p.alive(el)) return;
+  const node = $('.map', el); node.innerHTML = '';
+  const map = L.map(node, { worldCopyJump: true, preferCanvas: true, minZoom: 2, keyboard: false, zoomSnap: 0.5 }).setView(st.c || [30, -20], st.z || 2);
+  const ro = new ResizeObserver(() => map.invalidateSize());
+  ro.observe(node);
+  p.cleanup = () => { ro.disconnect(); map.remove(); };
+  const bases = mapBases(L);
+  let baseLayer = (bases[st.base] || bases.dark).addTo(map);
+  $('[data-base]', el).onchange = e => { map.removeLayer(baseLayer); baseLayer = bases[e.target.value].addTo(map); baseLayer.bringToBack?.(); st.base = e.target.value; save(); };
+  let fitted = !!st.c;
+  map.on('moveend', () => { if (!p.alive(el)) return; const c = map.getCenter(); st.c = [+c.lat.toFixed(3), +normLon(c.lng).toFixed(3)]; st.z = map.getZoom(); save(); });
+
+  const G = L.layerGroup().addTo(map), T = L.layerGroup().addTo(map), R = L.layerGroup().addTo(map);
+  const tip = (m, html) => m.bindTooltip(html, { direction: 'top', offset: [0, -6] });
+  let list = [], hubs = null, sel = st.sel || null, note = '';
+  const time = () => new Date().toLocaleTimeString('en-GB');
+  const status = h => { $('.geostat', el).innerHTML = h; };
+
+  const acTip = a => `<b>${esc(acName(a))}</b>${a.mil ? ' <span class="dn">MIL</span>' : ''}${SQK[a.sq] ? ` <span class="dn">${a.sq} ${SQK[a.sq]}</span>` : ''}<br>${esc([a.reg, a.type, a.desc].filter(Boolean).join(' · '))}${a.op ? '<br>' + esc(a.op) : ''}<br>${a.gnd ? 'On ground' : `${ok(a.alt) ? nf(a.alt, 0) + ' ft' : '—'} · ${ok(a.gs) ? nf(a.gs, 0) + ' kt' : '—'}`}<br><span class="yel">click for details</span>`;
+  const findAc = hex => list.find(x => x.hex === hex) || PTRK.find(t => t.hex === hex)?.last || null;
+
+  function drawMap() {
+    G.clearLayers(); T.clearLayers();
+    if (st.tab === 'hubs' && hubs) {
+      hubs.hubs.filter(h => !h.err).forEach(h => tip(L.circleMarker([h.lat, h.lon], { radius: 6 + Math.sqrt(h.cargo) * 3, color: '#ffa62b', weight: 2, fillColor: '#ffa62b', fillOpacity: 0.3 }),
+        `<b>${esc(h.code)} · ${esc(h.name)}</b><br>${h.cargo} cargo aircraft · ${h.total} total within ${hubs.radiusNm} nm`).on('click', () => map.setView([h.lat, h.lon], 9)).addTo(G));
+    }
+    list.filter(a => a.lat != null).forEach(a => {
+      const m = L.marker([a.lat, a.lon], { icon: planeIconFor(L, a, a.hex === sel ? '#ffffff' : null), keyboard: false, zIndexOffset: a.hex === sel ? 1000 : 0 });
+      tip(m, acTip(a)); m.on('click', () => select(a.hex)); m.addTo(G);
+    });
+    PTRK.forEach(t => {
+      trailSegs(PTRK_HIST[t.hex] || []).forEach(seg => L.polyline(seg, { color: '#ffd84d', weight: 2, opacity: 0.85 }).addTo(T));
+      const a = t.last;
+      if (!a || a.lat == null) return;
+      L.circleMarker([a.lat, a.lon], { radius: 12, color: '#ffd84d', weight: 2, fill: false, interactive: false }).addTo(T);
+      if (!list.some(x => x.hex === t.hex)) { const m = L.marker([a.lat, a.lon], { icon: planeIconFor(L, a, t.hex === sel ? '#ffffff' : null), keyboard: false }); tip(m, acTip(a)); m.on('click', () => select(t.hex)); m.addTo(T); }
+    });
+  }
+  const head = '<table><thead><tr><th class="l">Flight</th><th class="l">Reg</th><th class="l">Type</th><th class="l">Owner / operator</th><th class="l">Registry</th><th>Alt ft</th><th>Speed kt</th><th>Hdg</th><th>V/S fpm</th><th class="l">Squawk</th><th>Seen</th><th></th></tr></thead><tbody>';
+  const row = a => `<tr class="clk${a.hex === sel ? ' selrow' : ''}" data-hex="${esc(a.hex)}"><td class="l amb">${esc(acName(a))}${a.mil ? ' <span class="dn">MIL</span>' : ''}${a.ladd ? ' <span class="dim" title="Owner is on the FAA Limiting Aircraft Data Displayed list">LADD</span>' : ''}</td>
+    <td class="l">${esc(a.reg || '')}</td><td class="l dim" title="${esc(a.desc || '')}">${esc(a.type || '')}</td><td class="l name">${esc(a.op || '')}</td><td class="l dim">${esc(icaoCountry(a.hex))}</td>
+    <td>${a.gnd ? 'GND' : ok(a.alt) ? nf(a.alt, 0) : '—'}</td><td>${ok(a.gs) ? nf(a.gs, 0) : '—'}</td><td>${ok(a.trk) ? nf(a.trk, 0) + '°' : '—'}</td><td class="${cls(a.vr)}">${ok(a.vr) && a.vr ? sgn(a.vr, 0) : ''}</td>
+    <td class="l ${SQK[a.sq] ? 'dn' : 'dim'}">${esc(a.sq || '')}${SQK[a.sq] ? ' ' + SQK[a.sq] : ''}</td><td class="dim">${a.at ? ago(a.at / 1000) : a.lat == null ? 'no pos' : ok(a.seen) ? Math.round(a.seen) + 's' : ''}</td>
+    <td class="l">${isTracked(a.hex) ? `<button class="btn" data-untrack="${esc(a.hex)}">✕</button>` : `<button class="btn buy" data-track="${esc(a.hex)}">TRACK</button>`}</td></tr>`;
+  function drawList() {
+    const box = $('.ftl', el);
+    if (st.tab === 'hubs') {
+      if (!hubs) return;
+      box.innerHTML = `<table><thead><tr><th class="l">Hub</th><th>Aircraft ≤${hubs.radiusNm}nm</th><th>Cargo aircraft</th><th>On ground</th><th>Arriving</th><th>Departing</th><th class="l">Cargo operators</th><th class="l">Cargo count, this browser</th></tr></thead><tbody>` +
+        hubs.hubs.map(h => h.err ? `<tr><td class="l amb">${esc(h.code)}</td><td colspan="7" class="l dn">${esc(h.err)}</td></tr>` : `<tr class="clk" data-hub="${esc(h.code)}"><td class="l"><b class="amb">${esc(h.code)}</b> <span class="dim">${esc(h.name)}</span></td><td>${h.total}</td><td class="amb">${h.cargo}</td><td>${h.gnd}</td><td>${h.arr}</td><td>${h.dep}</td>
+          <td class="l">${Object.entries(h.ops).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span title="${esc(hubs.ops[k] || k)}">${esc(k)} ${n}</span>`).join(' · ') || '<span class="dim">—</span>'}</td><td class="l">${(HUB_HIST[h.code] || []).length > 1 ? `<div class="spark hs" data-h="${esc(h.code)}" style="height:22px;width:140px;margin:0"><canvas class="chart"></canvas></div>` : '<span class="dim">collecting…</span>'}</td></tr>`).join('') +
+        `</tbody></table><div class="pad dim">Live snapshot of aircraft within ${hubs.radiusNm} nm of each hub, counted by all-cargo operator callsigns (passenger airlines' freighters fly under passenger callsigns and are not counted). The trend column fills in from samples taken while this terminal is open. Source: ${esc(hubs.src || '')}.</div>`;
+      $$('.hs', el).forEach(d => { const h = HUB_HIST[d.dataset.h] || []; mountChart($('canvas', d), { x: h.map(x => new Date(x[0]).toLocaleString()), s: [{ d: h.map(x => x[1]), c: COLORS[0], fill: true }], mini: true }); });
+      return;
+    }
+    let rows = list;
+    if (st.tab === 'tracked') rows = PTRK.map(t => t.last ? { ...t.last } : { hex: t.hex, cs: t.label, lat: null });
+    box.innerHTML = rows.length ? head + rows.slice(0, 400).map(row).join('') + '</tbody></table>' + (note ? `<div class="pad dim">${note}</div>` : '')
+      : `<div class="empty">${st.tab === 'tracked' ? 'No aircraft tracked yet. FIND a flight (e.g. UAL1), a tail number (N628TS) or a type (B748), or click a plane on the map, then press TRACK.' : 'No aircraft found.'}</div>`;
+  }
+  function summary() {
+    const by = (f, n = 8) => Object.entries(list.reduce((m, a) => { const k = f(a); if (k) m[k] = (m[k] || 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => `${esc(k)} ${v}`).join(' · ');
+    if (st.tab === 'mil') return `<span><b class="amb">${list.length}</b> military aircraft broadcasting</span><span class="dim">by registry: ${by(a => icaoCountry(a.hex) || 'other')}</span><span class="dim">by type: ${by(a => a.type)}</span>`;
+    if (st.tab === 'biz') return `<span><b class="amb">${list.filter(a => !a.gnd).length}</b> large-cabin business jets airborne (${list.length} broadcasting)</span><span class="dim">${by(a => a.type, 14)}</span>`;
+    if (st.tab === 'sq') return `<span><b class="${list.length ? 'dn' : 'amb'}">${list.length}</b> aircraft squawking 7500 / 7600 / 7700</span>`;
+    if (st.tab === 'find') return `<span><b class="amb">${list.length}</b> matches for “${esc(st.q)}”</span>`;
+    if (st.tab === 'hubs') return hubs ? `<span><b class="amb">${hubs.hubs.reduce((n, h) => n + (h.cargo || 0), 0)}</b> cargo aircraft within ${hubs.radiusNm} nm of ${hubs.hubs.filter(h => !h.err).length} hubs</span>` : '<span>Cargo hub activity</span>';
+    return `<span><b class="amb">${PTRK.length}</b> tracked · trails recorded while this terminal is open</span>`;
+  }
+  async function load() {
+    const tab = st.tab;
+    status(summary() + ' <span class="spin"></span>');
+    try {
+      if (tab === 'hubs') {
+        hubs = await api('airhubs');
+        for (const h of hubs.hubs) {
+          if (h.err) continue;
+          const s = (HUB_HIST[h.code] ||= []), prev = s[s.length - 1];
+          if (!prev || Date.now() - prev[0] > 10 * 60e3) s.push([Date.now(), h.cargo, h.total]);
+          if (s.length > 1008) s.splice(0, s.length - 1008);
+        }
+        store.set('hubs.hist', HUB_HIST);
+        list = [];
+      } else if (tab === 'tracked') {
+        await refreshPlanes(true);
+        list = PTRK.map(t => t.last).filter(Boolean);
+      } else {
+        const d = await api(tab === 'find' ? 'air?q=' + encodeURIComponent(st.q || '') : { mil: 'airmil', sq: 'airsq', biz: 'airbiz' }[tab]);
+        list = d.ac.sort((a, b) => ((a.lat == null) - (b.lat == null)) || (b.mil - a.mil) || (a.gnd - b.gnd) || (b.alt ?? -1) - (a.alt ?? -1));
+        recordPlanes(list); savePtrk();
+        note = tab === 'biz' ? 'Gulfstream G650/G700/G800/G550/G600, Global 7500/6000/5000, Falcon 7X/8X, Challenger 350, Citation Longitude/Latitude. Track a tail number to follow a specific jet.' : tab === 'mil' ? 'Military aircraft flagged in the community ADS-B database. Many military flights do not broadcast ADS-B.' : '';
+        if (tab === 'find' && !list.length) note = '';
+      }
+      if (!p.alive(el) || tab !== st.tab) return;
+      if (!fitted && (tab === 'find' || tab === 'tracked')) {
+        const pts = list.filter(a => a.lat != null).map(a => [a.lat, a.lon]);
+        if (pts.length) { fitted = true; map.fitBounds(pts, { maxZoom: 7, padding: [30, 30] }); }
+      }
+      status(summary() + ` <span class="dim">· ${esc(hubs && tab === 'hubs' ? hubs.src || '' : '')} ${time()}</span>`);
+    } catch (e) {
+      if (p.alive(el)) status(`<span class="dn">${esc(e.message)}</span>`);
+    }
+    if (!p.alive(el)) return;
+    drawMap(); drawList(); if (sel) info(false);
+  }
+  async function info(fetchExtra = true) {
+    const box = $('.acinfo', el), a = findAc(sel);
+    if (!sel || !a) { box.style.display = 'none'; R.clearLayers(); return; }
+    box.style.display = '';
+    const cc = icaoCountry(a.hex);
+    const keep = fetchExtra ? '' : $('.acph', box)?.innerHTML || '';
+    const rt = fetchExtra ? '' : $('.rt', box)?.innerHTML || '';
+    box.innerHTML = `<div class="acph">${keep}</div><div class="acd">
+      <div><b class="amb">${esc(acName(a))}</b> ${esc([a.reg, a.desc || a.type].filter(Boolean).join(' · '))} ${a.mil ? '<span class="dn">MILITARY</span>' : ''}${SQK[a.sq] ? ` <span class="dn">SQUAWK ${a.sq} ${SQK[a.sq]}</span>` : ''}</div>
+      <div class="dim">${esc([a.op, cc, 'ICAO ' + String(a.hex).toUpperCase()].filter(Boolean).join(' · '))}</div>
+      <div>${a.lat == null ? '<span class="dim">no position</span>' : a.gnd ? 'On ground' : `${ok(a.alt) ? nf(a.alt, 0) + ' ft' : '—'} · ${ok(a.gs) ? nf(a.gs, 0) + ' kt' : '—'} · heading ${ok(a.trk) ? nf(a.trk, 0) + '°' : '—'}${ok(a.vr) && Math.abs(a.vr) > 200 ? ` · <span class="${cls(a.vr)}">${a.vr > 0 ? 'climbing' : 'descending'} ${nf(Math.abs(a.vr), 0)} fpm</span>` : ''}`}${(PTRK_HIST[a.hex] || []).length ? ` · <span class="yel">${PTRK_HIST[a.hex].length} trail points</span>` : ''}</div>
+      <div class="rt">${rt}</div></div>
+      <div class="acb">${isTracked(a.hex) ? `<button class="btn" data-untrack="${esc(a.hex)}">UNTRACK</button>` : `<button class="btn buy" data-track="${esc(a.hex)}">TRACK</button>`}${a.lat != null ? '<button class="btn" data-center>CENTER</button>' : ''}<button class="btn" data-close>✕</button></div>`;
+    if (!fetchExtra) return;
+    R.clearLayers();
+    api('airphoto?hex=' + encodeURIComponent(a.hex)).then(ph => {
+      if (!ph.src || sel !== a.hex || !p.alive(el) || !/^https:\/\//.test(ph.src)) return;
+      const link = /^https:\/\//.test(ph.link || '') ? ph.link : 'https://www.planespotters.net/';
+      $('.acph', el).innerHTML = `<a href="${esc(link)}" target="_blank" rel="noopener"><img src="${esc(ph.src)}" alt="Photo of ${esc(a.reg || a.hex)}"></a><small>© ${esc(ph.by || '')} · planespotters.net</small>`;
+    }).catch(() => { });
+    if (a.cs && a.lat != null && !a.mil) {
+      api(`airroute?cs=${encodeURIComponent(a.cs)}:${a.lat.toFixed(2)}:${a.lon.toFixed(2)}`).then(r => {
+        const x = r.routes[a.cs.toUpperCase()];
+        if (!x || sel !== a.hex || !p.alive(el)) return;
+        const ap = x.airports.filter(q => ok(q.lat) && ok(q.lon));
+        $('.rt', el).innerHTML = `Route <b>${esc(x.route.replace(/-/g, ' → '))}</b> <span class="dim">${esc(ap.map(q => q.city || q.name).join(' → '))}${x.plausible ? '' : ' (unconfirmed)'}</span>`;
+        if (ap.length >= 2) {
+          L.polyline([[ap[0].lat, ap[0].lon], [a.lat, a.lon]], { color: '#5aa9ff', weight: 1.5, opacity: 0.8 }).addTo(R);
+          L.polyline([[a.lat, a.lon], [ap[ap.length - 1].lat, ap[ap.length - 1].lon]], { color: '#5aa9ff', weight: 1.5, opacity: 0.8, dashArray: '5 6' }).addTo(R);
+          ap.forEach(q => tip(L.circleMarker([q.lat, q.lon], { radius: 4, color: '#5aa9ff', fillColor: '#5aa9ff', fillOpacity: 1 }), `<b>${esc(q.iata || q.icao)}</b> ${esc(q.name || '')}`).addTo(R));
+        }
+      }).catch(() => { });
+    }
+  }
+  function select(hex) {
+    sel = hex; st.sel = hex; save();
+    drawMap(); drawList(); info();
+  }
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-track],[data-untrack],[data-center],[data-close],[data-hex],[data-hub]');
+    if (!b) return;
+    if (b.dataset.track) {
+      const a = findAc(b.dataset.track);
+      try { if (a) { trackPlane(a); p.msg(`Tracking ${acName(a)} — its trail records while the terminal is open`, true); } } catch (err) { p.msg(err.message); }
+      $('[data-tab="tracked"]', el).textContent = `TRACKED (${PTRK.length})`;
+      drawMap(); drawList(); info(false);
+    } else if (b.dataset.untrack) {
+      untrackPlane(b.dataset.untrack);
+      $('[data-tab="tracked"]', el).textContent = `TRACKED (${PTRK.length})`;
+      if (st.tab === 'tracked') list = list.filter(a => a.hex !== b.dataset.untrack);
+      drawMap(); drawList(); info(false);
+    } else if (b.dataset.center !== undefined) {
+      const a = findAc(sel); if (a && a.lat != null) map.setView([a.lat, a.lon], Math.max(map.getZoom(), 8));
+    } else if (b.dataset.close !== undefined) {
+      sel = null; st.sel = null; save(); drawMap(); drawList(); info();
+    } else if (b.dataset.hub) {
+      const h = hubs?.hubs.find(x => x.code === b.dataset.hub); if (h) map.setView([h.lat, h.lon], 9);
+    } else if (b.dataset.hex) {
+      select(b.dataset.hex);
+      const a = findAc(b.dataset.hex); if (a && a.lat != null) map.setView([a.lat, a.lon], Math.max(map.getZoom(), 7));
+    }
+  });
+  load();
+  let n = 0;
+  const every = { tracked: 4, find: 3, mil: 4, sq: 4, biz: 12, hubs: 18 };
+  p.tick = () => { if (++n % (every[st.tab] || 6) === 0) load(); };
+}
+
 // ---------------------------------------------------------------- EDGE: everything on one screen
 FN.EDGE = {
   d: 'Edge dashboard: insider buys, unusual options, Fed odds, sentiment, catalysts', cat: 'edge',
@@ -2575,6 +2902,832 @@ FN.EDGE = {
     }).catch(err('tank'));
   },
 };
+/* =====================================================================
+   Strategies: backtesting (BTST) and paper-trading bots (BOT).
+   Strategy code runs in a Web Worker (engine.js), so a runaway loop can't freeze the terminal.
+   ===================================================================== */
+function engineWorker() {
+  let w = null, seq = 0;
+  const waiting = new Map();
+  const kill = why => {
+    if (w) w.terminate();
+    w = null;
+    for (const cb of waiting.values()) { clearTimeout(cb.timer); cb.rej(new Error(why)); }
+    waiting.clear();
+  };
+  const worker = () => {
+    if (w) return w;
+    w = new Worker('engine.js');
+    w.onmessage = e => {
+      const m = e.data, cb = waiting.get(m.id);
+      if (!cb) return;
+      if (m.progress != null) return cb.progress && cb.progress(m.progress);
+      waiting.delete(m.id); clearTimeout(cb.timer);
+      if (m.ok) cb.res(m.res); else cb.rej(Object.assign(new Error(m.error.msg), m.error, { code: true }));
+    };
+    w.onerror = e => { e.preventDefault(); kill('The strategy engine (engine.js) failed to load'); };
+    return w;
+  };
+  return {
+    call(msg, { timeout = 30000, progress } = {}) {
+      return new Promise((res, rej) => {
+        const id = ++seq;
+        const timer = setTimeout(() => kill(`Stopped after ${timeout / 1000}s — does the strategy contain an endless loop?`), timeout);
+        waiting.set(id, { res, rej, timer, progress });
+        try { worker().postMessage({ id, ...msg }); } catch (e) { waiting.delete(id); clearTimeout(timer); rej(e); }
+      });
+    },
+    kill,
+  };
+}
+const BTW = engineWorker(), BOTW = engineWorker();
+
+let STRATS = store.get('strats', {});   // name -> code
+const saveStrats = () => store.set('strats', STRATS);
+const BT_BLANK = `// My strategy — onBar() runs once per bar, after the bar closes.
+// Orders fill at the next bar's open. See the API tab for every function.
+const LEN = param('length', 20, 5, 100, 5);   // name, default, min, max, step
+
+function onBar() {
+  const ma = sma(close, LEN);
+  plot(ma, 'SMA ' + LEN);
+
+  if (isFlat() && crossover(close, ma)) buy();
+  if (isLong() && crossunder(close, ma)) sell();
+}
+`;
+const BT_TEMPLATES = [
+  ['sma', 'Moving-average crossover', `// Moving-average crossover (trend following)
+// Long when the fast average crosses above the slow one; flat when it crosses back below.
+const FAST = param('fast', 20, 5, 100, 5);
+const SLOW = param('slow', 50, 20, 250, 10);
+
+function onBar() {
+  const fast = sma(close, FAST);
+  const slow = sma(close, SLOW);
+  plot(fast, 'SMA ' + FAST);
+  plot(slow, 'SMA ' + SLOW);
+
+  if (crossover(fast, slow)) buy();
+  if (crossunder(fast, slow)) sell();
+}
+`],
+  ['rsi2', 'RSI(2) mean reversion', `// RSI(2) mean reversion (Connors style)
+// Buy sharp short-term dips while the long-term trend is up; sell into the bounce.
+const LEN = param('rsiLength', 2, 2, 14, 1);
+const ENTRY = param('entryBelow', 10, 5, 30, 5);
+const EXIT = param('exitAbove', 70, 50, 90, 10);
+
+function onBar() {
+  const r = rsi(close, LEN);
+  const trend = sma(close, 200);
+  plot(trend, 'SMA 200');
+  plotLower(r, 'RSI ' + LEN);
+
+  if (isFlat() && last(close) > last(trend) && last(r) < ENTRY) buy({ stop: 0.10 });
+  if (isLong() && last(r) > EXIT) sell();
+}
+`],
+  ['donchian', 'Donchian breakout (Turtle)', `// Donchian channel breakout (Turtle-style trend following)
+// Buy a new N-bar high, exit on a shorter-term low, with an ATR-based protective stop.
+const ENTRY = param('entryBars', 55, 20, 100, 5);
+const EXIT = param('exitBars', 20, 5, 50, 5);
+const ATR_MULT = param('atrStop', 2, 1, 4, 0.5);
+
+function onBar() {
+  const upper = highest(high, ENTRY);
+  const lower = lowest(low, EXIT);
+  plot(upper, 'High ' + ENTRY);
+  plot(lower, 'Low ' + EXIT);
+
+  // Compare with the channel as of the previous bar, so this bar can break out of it
+  if (isFlat() && last(close) > last(upper, 1)) {
+    buy({ stop: ATR_MULT * last(atr(20)) / last(close) });
+  }
+  if (isLong() && last(close) < last(lower, 1)) sell();
+}
+`],
+  ['macd', 'MACD with trailing stop', `// MACD signal-line crossover with a trailing stop
+const FAST = param('fast', 12, 6, 20, 2);
+const SLOW = param('slow', 26, 20, 40, 2);
+const SIGNAL = param('signal', 9, 5, 15, 2);
+const TRAIL = param('trailingStop', 0.08, 0.04, 0.2, 0.02);
+
+function onBar() {
+  const m = macd(close, FAST, SLOW, SIGNAL);
+  plotLower(m.macd, 'MACD');
+  plotLower(m.signal, 'Signal');
+
+  if (crossover(m.macd, m.signal)) buy({ trail: TRAIL });
+  if (crossunder(m.macd, m.signal)) sell();
+}
+`],
+  ['bollinger', 'Bollinger Band reversion', `// Bollinger Band mean reversion
+// Buy a close below the lower band; take profit at the middle band.
+const LEN = param('length', 20, 10, 50, 5);
+const K = param('stdDevs', 2, 1, 3, 0.5);
+
+function onBar() {
+  const bb = bbands(close, LEN, K);
+  plot(bb.upper, 'Upper');
+  plot(bb.middle, 'Middle');
+  plot(bb.lower, 'Lower');
+
+  if (isFlat() && crossunder(close, bb.lower)) buy({ stop: 0.08 });
+  if (isLong() && crossover(close, bb.middle)) sell();
+}
+`],
+  ['trend', '200-day trend filter (long/short)', `// Trend filter: long above the moving average, short below it.
+// Set shorts to 0 to hold cash instead of shorting.
+const LEN = param('length', 200, 50, 300, 25);
+const SHORTS = param('shorts', 0, 0, 1, 1);
+
+function onBar() {
+  const ma = sma(close, LEN);
+  plot(ma, 'SMA ' + LEN);
+  if (!Number.isFinite(last(ma))) return;   // still warming up
+
+  // target(x) holds x × equity: 1 = fully long, 0 = cash, -1 = fully short
+  target(last(close) > last(ma) ? 1 : SHORTS ? -1 : 0);
+}
+`],
+  ['dip', 'Buy the dip, timed exit', `// Buy after several down closes in a row; exit after a few bars or at a profit target.
+const DOWN = param('downBars', 3, 2, 5, 1);
+const HOLD = param('holdBars', 5, 2, 20, 1);
+const TP = param('takeProfit', 0.05, 0.02, 0.15, 0.01);
+
+function onBar() {
+  let n = 0;
+  while (n < DOWN && last(close, n) < last(close, n + 1)) n++;
+
+  if (isFlat() && n === DOWN) buy({ target: TP, stop: 0.08 });
+  if (isLong() && barsInTrade() >= HOLD) sell();
+}
+`],
+  ['intraday', 'Intraday EMA + VWAP (5m bars)', `// Intraday EMA crossover filtered by VWAP. Use 5m or 15m bars with a 1M range.
+// Goes flat before the close so nothing is held overnight.
+const FAST = param('fast', 9, 5, 20, 1);
+const SLOW = param('slow', 21, 15, 50, 2);
+
+function onBar() {
+  const f = ema(close, FAST), s = ema(close, SLOW), vw = vwap();
+  plot(f, 'EMA ' + FAST);
+  plot(s, 'EMA ' + SLOW);
+  plot(vw, 'VWAP');
+
+  const d = date();                                  // exchange local time
+  const mins = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (mins >= 15 * 60 + 45) { if (!isFlat()) exit(); return; }
+
+  if (crossover(f, s) && last(close) > last(vw)) buy();
+  if (crossunder(f, s)) sell();
+}
+`],
+];
+const stratCode = key => key && key.startsWith('tpl:') ? BT_TEMPLATES.find(t => t[0] === key.slice(4))?.[2] : STRATS[key];
+const stratLabel = key => !key ? 'Unsaved strategy' : key.startsWith('tpl:') ? (BT_TEMPLATES.find(t => t[0] === key.slice(4))?.[1] || key) + ' (template)' : key;
+const stratOpts = (sel, extra = '') => `${extra}${sel === '' ? '<option value="" selected>— unsaved strategy —</option>' : ''}<optgroup label="My strategies">${Object.keys(STRATS).sort().map(n => `<option value="${esc(n)}" ${n === sel ? 'selected' : ''}>${esc(n)}</option>`).join('') || '<option disabled>none saved yet</option>'}</optgroup>
+  <optgroup label="Templates">${BT_TEMPLATES.map(([id, nm]) => `<option value="tpl:${id}" ${'tpl:' + id === sel ? 'selected' : ''}>${esc(nm)}</option>`).join('')}</optgroup>`;
+
+const BT_API = [
+  ['Structure', [
+    ['function onBar() { … }', 'Runs once per bar after it closes. Orders you place fill at the next bar\'s open (or this bar\'s close with Fill: same close).'],
+    ['function onStart() / onEnd()', 'Optional: run before the first bar and after the last one.'],
+    ['param(name, default, min, max, step)', 'A tunable number. Shows up under PARAMETERS and can be swept by OPTIMIZE.'],
+    ['let x = …  (top level)', 'Variables declared outside onBar keep their value from bar to bar.'],
+  ]],
+  ['Price series', [
+    ['open, high, low, close, volume, time', 'Arrays of everything up to the current bar. The current bar is close.at(-1); future bars are never visible.'],
+    ['last(series, ago = 0)', 'Value ago bars back: last(close) is the current close, last(close, 1) the previous one. Works on indicator series too.'],
+    ['nz(value, fallback = 0)', 'Replaces NaN (e.g. an indicator still warming up) with a fallback.'],
+    ['date()', 'Date of the current bar in exchange local time: use getUTCHours(), getUTCDay(), …'],
+    ['barIndex()', 'Index of the current bar (0-based).'],
+  ]],
+  ['Indicators (return series; NaN while warming up)', [
+    ['sma(src, n)  ema(src, n)  wma(src, n)  rma(src, n)', 'Simple, exponential, weighted and Wilder moving averages.'],
+    ['rsi(src, n = 14)', 'Relative Strength Index (Wilder).'],
+    ['macd(src, fast = 12, slow = 26, signal = 9)', 'Returns { macd, signal, hist }.'],
+    ['bbands(src, n = 20, k = 2)', 'Bollinger Bands: { upper, middle, lower }.'],
+    ['atr(n = 14)', 'Average True Range from high/low/close.'],
+    ['stoch(n = 14, d = 3, smoothK = 1)', 'Stochastic oscillator: { k, d }.'],
+    ['highest(src, n)  lowest(src, n)', 'Rolling max / min over n bars, including the current one.'],
+    ['stdev(src, n)  roc(src, n)  change(src, n)', 'Standard deviation, % rate of change, difference vs n bars ago.'],
+    ['vwap()  obv()', 'Session VWAP (resets daily) and On-Balance Volume.'],
+    ['crossover(a, b)  crossunder(a, b)', 'True on the bar where a crosses above / below b. b can be a number, e.g. crossover(rsi(close, 14), 30).'],
+    ['ema(rsi(close, 14), 5)', 'Indicators can be nested.'],
+  ]],
+  ['Orders', [
+    ['buy()  buy(0.5)  buy({ qty: 100 })', 'Go long with 100% of equity, 50%, or a fixed quantity. Flips a short to long; ignored if already long (add: true to scale in).'],
+    ['buy({ stop: 0.05, target: 0.10, trail: 0.08 })', 'Attach a stop loss, take profit and/or trailing stop, as fractions of the entry price.'],
+    ['sell()  sell(0.5)', 'Close the long position, or half of it.'],
+    ['short(…)  cover(…)', 'Same as buy / sell for short positions.'],
+    ['target(x)', 'Hold x × equity: 1 = fully long, 0 = flat, -0.5 = half short. Safe to call every bar (1% band before rebalancing).'],
+    ['order(qty)', 'Buy (+) or sell (−) an exact quantity.'],
+    ['exit()', 'Close any position.'],
+    ['stopLoss(f)  takeProfit(f)  trailingStop(f)', 'Set risk exits for the current position and every later entry; pass null to clear.'],
+  ]],
+  ['Position & account', [
+    ['position()', 'Signed quantity held (negative = short).'],
+    ['isLong()  isShort()  isFlat()', 'Position state.'],
+    ['entryPrice()  barsInTrade()  openProfit()', 'Average entry price, bars since entry, open P&L as a fraction.'],
+    ['equity()  cash()', 'Account value at the current close, and cash.'],
+  ]],
+  ['Output', [
+    ['plot(series or value, name, color?)', 'Line drawn over the price chart (up to 12 plots).'],
+    ['plotLower(series or value, name, color?)', 'Line drawn in the lower indicator pane (RSI, MACD, …).'],
+    ['log(…values)', 'Writes to the LOG tab, stamped with the bar\'s time. Bots copy new lines into their own log.'],
+  ]],
+];
+
+const BT_IVS = [['1d', 'Daily', ['1Y', '2Y', '5Y', '10Y', 'MAX']], ['1wk', 'Weekly', ['5Y', '10Y', 'MAX']], ['60m', 'Hourly', ['1M', '3M', '6M', '1Y']],
+  ['15m', '15 min', ['5D', '1M']], ['5m', '5 min', ['5D', '1M']], ['1m', '1 min', ['1D', '5D']]];
+const BT_RG = { '1D': '1d', '5D': '5d', '1M': '1mo', '3M': '3mo', '6M': '6mo', '1Y': '1y', '2Y': '2y', '5Y': '5y', '10Y': '10y', MAX: 'max' };
+const BT_DEF = { name: 'tpl:sma', code: '', syms: 'SPY', iv: '1d', rg: '10Y', cap: 100000, fee: 0.01, slip: 0.03, fill: 'open', adj: true, split: 70, params: {}, metric: 'sharpe', sweep: {} };
+function btState() {
+  const s = { ...BT_DEF, ...store.get('bt', {}) };
+  if (!s.code) s.code = stratCode(s.name) || BT_TEMPLATES[0][2];
+  return s;
+}
+const parseSyms = txt => [...new Set(String(txt || '').toUpperCase().split(/[,;]+/).map(x => resolve(x.trim().split(/\s+/).filter(Boolean))).filter(Boolean))];
+async function btData(y, iv, rg, adj) {
+  const c = await cachedApi(`bt:${y}:${iv}:${rg}`, /m$/.test(iv) ? 60e3 : 600e3, `chart?symbol=${encodeURIComponent(y)}&range=${BT_RG[rg] || '1y'}&interval=${iv}`);
+  if (!c.t.length) throw new Error('No price history for ' + y);
+  const f = adj && c.adj && c.adj.length === c.c.length ? c.adj.map((a, i) => ok(a) && c.c[i] ? a / c.c[i] : 1) : null;
+  const m = a => f ? a.map((v, i) => ok(v) ? v * f[i] : v) : a;
+  return { t: c.t, o: m(c.o), h: m(c.h), l: m(c.l), c: m(c.c), v: c.v.map(v => v || 0), meta: c.meta };
+}
+const btPayload = d => ({ t: d.t, o: d.o, h: d.h, l: d.l, c: d.c, v: d.v });
+const btOpt = (st, y, d, extra) => ({ capital: +st.cap || 100000, commission: (+st.fee || 0) / 100, slippage: (+st.slip || 0) / 100, fillAt: st.fill, params: st.params, fractional: isFracSym(y), gmtoffset: d.meta.gmtoffset || 0, ...extra });
+const btLabel = (t, off, intraday) => intraday ? fD(xd(t, off)).slice(0, 5) + ' ' + fT(xd(t, off)) : fD(xd(t, off));
+
+// ---------------------------------------------------------------- code editor (textarea + highlighted overlay)
+const JS_KW = new Set('const let var function return if else for while do of in new true false null undefined break continue switch case default typeof instanceof this try catch throw'.split(' '));
+const JS_API = new Set(['open', 'high', 'low', 'close', 'volume', 'time', 'param', 'sma', 'ema', 'wma', 'rma', 'stdev', 'rsi', 'macd', 'bbands', 'atr', 'highest', 'lowest', 'roc', 'change', 'stoch', 'obv', 'vwap', 'crossover', 'crossunder', 'last', 'nz',
+  'buy', 'sell', 'short', 'cover', 'exit', 'target', 'order', 'stopLoss', 'takeProfit', 'trailingStop', 'position', 'isLong', 'isShort', 'isFlat', 'entryPrice', 'barsInTrade', 'openProfit', 'equity', 'cash', 'date', 'barIndex', 'plot', 'plotLower', 'log', 'onBar', 'onStart', 'onEnd']);
+function hlJs(code) {
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$))|('(?:\\.|[^'\\\n])*'?|"(?:\\.|[^"\\\n])*"?|`(?:\\.|[^`\\])*`?)|(\b\d+(?:\.\d+)?(?:e[+-]?\d+)?\b|\.\d+\b)|([A-Za-z_$][\w$]*)/g;
+  let out = '', k = 0, m;
+  while ((m = re.exec(code))) {
+    out += esc(code.slice(k, m.index)); k = re.lastIndex;
+    const [tok, cm, str, num, id] = m;
+    out += cm ? `<i class="c">${esc(cm)}</i>` : str ? `<i class="s">${esc(str)}</i>` : num ? `<i class="n">${num}</i>` : JS_KW.has(id) ? `<i class="k">${id}</i>` : JS_API.has(id) ? `<i class="f">${id}</i>` : esc(tok);
+  }
+  return out + esc(code.slice(k)) + '\n';
+}
+function edInsert(ta, text) {
+  ta.focus();
+  if (!document.execCommand('insertText', false, text)) { ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); }
+}
+// Applies f to every line touched by the selection
+function edLines(ta, f) {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const a = v.lastIndexOf('\n', s - 1) + 1;
+  let b = e > s && v[e - 1] === '\n' ? e - 1 : v.indexOf('\n', e);
+  if (b < 0) b = v.length;
+  const block = f(v.slice(a, b).split('\n')).join('\n');
+  ta.setSelectionRange(a, b); edInsert(ta, block); ta.setSelectionRange(a, a + block.length);
+}
+function edKeys(e, ta, act) {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key === 'Enter') { e.preventDefault(); act.run(); }
+  else if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); act.save(); }
+  else if (mod && e.key === '/') { e.preventDefault(); edLines(ta, ls => { const on = ls.every(l => /^\s*\/\//.test(l) || !l.trim()); return ls.map(l => on ? l.replace(/^(\s*)\/\/ ?/, '$1') : l.trim() ? l.replace(/^(\s*)/, '$1// ') : l); }); }
+  else if (e.key === 'Tab' && !mod && !e.altKey) {
+    e.preventDefault();
+    if (e.shiftKey) edLines(ta, ls => ls.map(l => l.replace(/^ {1,2}/, '')));
+    else if (ta.selectionStart !== ta.selectionEnd && ta.value.slice(ta.selectionStart, ta.selectionEnd).includes('\n')) edLines(ta, ls => ls.map(l => '  ' + l));
+    else edInsert(ta, '  ');
+  } else if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    const v = ta.value, s = ta.selectionStart, ls = v.lastIndexOf('\n', s - 1) + 1, line = v.slice(ls, s);
+    const ind = line.match(/^ */)[0] + (/[{(\[]\s*$/.test(line) ? '  ' : '');
+    edInsert(ta, '\n' + ind);
+  } else if (e.key === '}' && !mod) {
+    const v = ta.value, s = ta.selectionStart, ls = v.lastIndexOf('\n', s - 1) + 1;
+    if (/^ {2,}$/.test(v.slice(ls, s)) && ta.selectionStart === ta.selectionEnd) { e.preventDefault(); ta.setSelectionRange(s - 2, s); edInsert(ta, '}'); }
+  }
+}
+function mountEditor(box, code, onInput, act) {
+  box.innerHTML = '<div class="gut"></div><div class="edin"><pre class="hl" aria-hidden="true"></pre><textarea spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="Strategy code"></textarea></div>';
+  const ta = $('textarea', box), pre = $('.hl', box), gut = $('.gut', box);
+  let err = null, lines = 0;
+  const sync = () => { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; gut.scrollTop = ta.scrollTop; };
+  const paint = () => {
+    pre.innerHTML = hlJs(ta.value);
+    const n = ta.value.split('\n').length;
+    if (n !== lines || err) { lines = n; gut.innerHTML = Array.from({ length: n }, (_, i) => i + 1 === err ? `<b class="dn">${i + 1}</b>` : i + 1).join('\n') + '\n\n'; }
+    sync();
+  };
+  ta.value = code; paint();
+  ta.addEventListener('input', () => { if (err) { err = null; lines = 0; } paint(); onInput(ta.value); });
+  ta.addEventListener('scroll', sync);
+  ta.addEventListener('keydown', e => edKeys(e, ta, act));
+  return {
+    ta,
+    get value() { return ta.value; },
+    set(v) { ta.value = v; err = null; lines = 0; paint(); },
+    markError(line) {
+      err = line || null; lines = 0; paint();
+      if (line) {
+        const pos = ta.value.split('\n').slice(0, line - 1).join('\n').length + (line > 1 ? 1 : 0);
+        ta.focus(); ta.setSelectionRange(pos, pos);
+        ta.scrollTop = Math.max(0, (line - 4) * 18);
+        sync();
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------- BTST: strategy backtester
+let BT_LAST = null;   // last run's results (kept while the page is open)
+FN.BTST = {
+  d: 'Strategy backtester: code a strategy, test it on history, optimize it, make it a bot', cat: 'strat',
+  r(p, y, arg) {
+    const st = btState();
+    if (typeof arg === 'string' && arg.trim()) { st.syms = arg.trim(); store.set('bt', st); p.cur.arg = null; p._btAuto = true; }
+    p.title = 'Strategy Backtester';
+    const iv = BT_IVS.find(x => x[0] === st.iv) || BT_IVS[0];
+    return `<div class="bt">
+      <div class="bar">
+        <select class="inp" id="bts" title="Strategy">${stratOpts(st.name)}</select><span class="dirty" title="Unsaved changes"></span>
+        <button class="btn" id="btnew">NEW</button><button class="btn" id="btsave" title="Ctrl+S">SAVE</button><button class="btn" id="btsaveas">SAVE AS</button><button class="btn" id="btdel">DELETE</button>
+        <span class="lbl">Symbols</span><input class="inp" id="bty" size="16" value="${esc(st.syms)}" title="One symbol, or several separated by commas (SPY, QQQ, AAPL)">
+        <select class="inp" id="btiv" title="Bar size">${BT_IVS.map(([k, l]) => `<option value="${k}" ${k === iv[0] ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <select class="inp" id="btrg" title="History">${iv[2].map(r => `<option ${r === st.rg ? 'selected' : ''}>${r}</option>`).join('')}</select>
+        <button class="btn buy" id="btrun" title="Ctrl+Enter">▶ RUN</button><button class="btn" id="btbot" title="Run this strategy live on paper">MAKE BOT</button>
+      </div>
+      <div class="bar sub">
+        <span class="lbl">Capital $</span><input class="inp num" id="btcap" size="9" value="${esc(st.cap)}">
+        <span class="lbl">Commission %</span><input class="inp num" id="btfee" size="5" value="${esc(st.fee)}">
+        <span class="lbl">Slippage %</span><input class="inp num" id="btslip" size="5" value="${esc(st.slip)}">
+        <span class="lbl">Fill</span><select class="inp" id="btfill"><option value="open" ${st.fill === 'open' ? 'selected' : ''}>next bar's open</option><option value="close" ${st.fill === 'close' ? 'selected' : ''}>same bar's close</option></select>
+        <label class="chk" title="Adjust prices for dividends so results compare with total-return buy & hold"><input type="checkbox" id="btadj" ${st.adj ? 'checked' : ''}>Dividend-adjusted</label>
+      </div>
+      <div class="split">
+        <div class="edcol"><div class="ed"></div><div class="params"></div><div class="con"></div></div>
+        <div class="rescol">
+          <div class="multi"></div>
+          <div class="pad kpis bk"><div class="empty">Write or pick a strategy, enter a symbol and press <span class="amb">▶ RUN</span> (Ctrl+Enter).</div></div>
+          <div class="cbox"><div class="ct">EQUITY <span class="dim">— <span style="color:${COLORS[0]}">strategy</span> vs <span style="color:${COLORS[1]}">buy &amp; hold</span></span></div><div class="chartwrap"><canvas class="chart eq"></canvas></div></div>
+          <div class="cbox"><div class="ct">PRICE &amp; TRADES <span class="dim pxl"></span></div><div class="chartwrap"><canvas class="chart px"></canvas></div></div>
+          <div class="cbox lowbox" style="display:none"><div class="ct">INDICATORS <span class="dim lol"></span></div><div class="chartwrap sm"><canvas class="chart lo"></canvas></div></div>
+          <div class="bar">${[['trades', 'TRADES'], ['opt', 'OPTIMIZE'], ['log', 'LOG'], ['api', 'API REFERENCE']].map(([k, l]) => `<button class="tab ${k === (st.tab || 'trades') ? 'on' : ''}" data-bt="${k}">${l}</button>`).join('')}</div>
+          <div class="btab"></div>
+        </div>
+      </div></div>`;
+  },
+  m(p, el) { const auto = p._btAuto; p._btAuto = false; mountBt(p, el, btState(), auto); },
+};
+
+function mountBt(p, el, st, autorun) {
+  const saveSt = () => store.set('bt', st);
+  const dirty = () => st.code !== (stratCode(st.name) ?? '');
+  const markDirty = () => { $('.dirty', el).textContent = dirty() ? '● unsaved' : ''; };
+  let sd;
+  const ed = mountEditor($('.ed', el), st.code, v => { st.code = v; markDirty(); clearTimeout(sd); sd = setTimeout(saveSt, 400); }, { run: () => run(), save: () => save() });
+  markDirty();
+  const con = (html, cls = '') => { $('.con', el).innerHTML = html ? `<div class="${cls}">${html}</div>` : ''; };
+
+  // settings
+  const num = (id, v) => { const x = parseFloat($(id, el).value); return ok(x) && x >= 0 ? x : v; };
+  const readSettings = () => {
+    st.syms = $('#bty', el).value; st.iv = $('#btiv', el).value; st.rg = $('#btrg', el).value;
+    st.cap = num('#btcap', 100000) || 100000; st.fee = num('#btfee', 0); st.slip = num('#btslip', 0);
+    st.fill = $('#btfill', el).value; st.adj = $('#btadj', el).checked;
+  };
+  $$('.bar input, .bar select', el).forEach(i => i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') run(); }));
+  $('#btiv', el).onchange = () => {
+    const iv = BT_IVS.find(x => x[0] === $('#btiv', el).value);
+    const cur = $('#btrg', el).value;
+    $('#btrg', el).innerHTML = iv[2].map(r => `<option ${r === cur ? 'selected' : ''}>${r}</option>`).join('');
+    if (!iv[2].includes(cur)) $('#btrg', el).value = iv[2][iv[2].length - 1];
+    readSettings(); saveSt();
+  };
+  $$('#btrg, #btfill, #btadj, #bty, #btcap, #btfee, #btslip', el).forEach(i => i.addEventListener('change', () => { readSettings(); saveSt(); }));
+
+  // strategy library
+  const load = key => { st.name = key; st.code = stratCode(key) || BT_BLANK; st.params = {}; st.sweep = {}; ed.set(st.code); saveSt(); markDirty(); drawParams(null); };
+  const refreshSel = () => { $('#bts', el).innerHTML = stratOpts(st.name); markDirty(); };
+  $('#bts', el).onchange = e => {
+    if (dirty() && !confirm(`Discard unsaved changes to "${stratLabel(st.name)}"?`)) { e.target.value = st.name; return; }
+    load(e.target.value);
+  };
+  const askName = def => {
+    const n = (prompt('Strategy name:', def) || '').trim().slice(0, 40);
+    if (!n) return null;
+    if (n.startsWith('tpl:')) { p.msg('Names cannot start with "tpl:"'); return null; }
+    if (STRATS[n] && n !== st.name && !confirm(`Replace the saved strategy "${n}"?`)) return null;
+    return n;
+  };
+  const saveAs = () => {
+    const n = askName(st.name && !st.name.startsWith('tpl:') ? st.name + ' copy' : st.name.startsWith('tpl:') ? 'My ' + stratLabel(st.name).replace(' (template)', '') : 'My strategy');
+    if (!n) return;
+    STRATS[n] = ed.value; saveStrats(); st.name = n; st.code = ed.value; saveSt(); refreshSel(); p.msg(`Saved "${n}"`, true);
+  };
+  function save() {
+    if (!st.name || st.name.startsWith('tpl:')) return saveAs();
+    STRATS[st.name] = ed.value; saveStrats(); st.code = ed.value; saveSt(); markDirty(); p.msg(`Saved "${st.name}"`, true);
+  }
+  $('#btsave', el).onclick = save;
+  $('#btsaveas', el).onclick = saveAs;
+  $('#btnew', el).onclick = () => {
+    if (dirty() && !confirm(`Discard unsaved changes to "${stratLabel(st.name)}"?`)) return;
+    const n = askName('My strategy ' + (Object.keys(STRATS).length + 1));
+    if (!n) return;
+    STRATS[n] = BT_BLANK; saveStrats(); load(n); refreshSel();
+  };
+  $('#btdel', el).onclick = () => {
+    if (!st.name || st.name.startsWith('tpl:')) return p.msg('Templates cannot be deleted');
+    if (!confirm(`Delete the strategy "${st.name}"?`)) return;
+    delete STRATS[st.name]; saveStrats(); load('tpl:' + BT_TEMPLATES[0][0]); refreshSel();
+  };
+  $('#btbot', el).onclick = () => {
+    readSettings();
+    const y = parseSyms(st.syms)[0];
+    p.go('BOT', null, { new: { key: st.name, label: stratLabel(st.name) + (dirty() ? ' (edited)' : ''), code: ed.value, sym: y || 'SPY', iv: BOT_IV[st.iv] ? st.iv : '1d' } });
+  };
+
+  // parameters
+  let declared = BT_LAST && BT_LAST.code === st.code ? BT_LAST.declared : null;
+  function drawParams(dec) {
+    declared = dec || declared;
+    const box = $('.params', el);
+    if (!declared || !Object.keys(declared).length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="ph"><span class="h">PARAMETERS</span><button class="btn" id="pdef">DEFAULTS</button></div><div class="pgrid">` +
+      Object.entries(declared).map(([k, d]) => `<label title="${esc(d.min != null ? `range ${d.min} – ${d.max}, step ${d.step}` : '')}"><span>${esc(k)}</span><input class="inp num" data-param="${esc(k)}" size="6" value="${esc(st.params[k] ?? d.def)}"></label>`).join('') + '</div>';
+    $$('[data-param]', box).forEach(i => {
+      i.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { setParam(i); run(); } };
+      i.onchange = () => setParam(i);
+    });
+    $('#pdef', box).onclick = () => { st.params = {}; saveSt(); drawParams(); run(); };
+  }
+  const setParam = i => {
+    const k = i.dataset.param, d = declared[k], v = i.value.trim();
+    if (v === '' || String(v) === String(d.def)) delete st.params[k]; else st.params[k] = typeof d.def === 'number' ? +v : v;
+    saveSt();
+  };
+  drawParams(declared);
+
+  // ---- run
+  let running = false;
+  async function run() {
+    if (running) return;
+    readSettings(); saveSt();
+    const syms = parseSyms(st.syms);
+    if (!syms.length) return p.msg('Enter a symbol, e.g. SPY — or several: SPY, QQQ, AAPL');
+    running = true;
+    $('#btrun', el).textContent = '… RUNNING';
+    con(`Running on ${syms.length > 1 ? syms.length + ' symbols' : esc(disp(syms[0]))}…`, 'dim');
+    const results = [];
+    let codeErr = null;
+    for (const y of syms.slice(0, 12)) {
+      try {
+        const data = await btData(y, st.iv, st.rg, st.adj);
+        const res = await BTW.call({ type: 'backtest', code: ed.value, data: btPayload(data), opt: btOpt(st, y, data) });
+        results.push({ y, data, res });
+      } catch (e) {
+        if (e.code) { codeErr = e; break; }
+        results.push({ y, err: e.message });
+      }
+      if (!p.alive(el)) { running = false; return; }
+    }
+    running = false;
+    if (!p.alive(el)) return;
+    $('#btrun', el).textContent = '▶ RUN';
+    if (codeErr) {
+      ed.markError(codeErr.line);
+      con(`<b>${esc(codeErr.message)}</b>${codeErr.line ? ` <span class="dim">— line ${codeErr.line}</span>` : ''}${codeErr.bar != null && codeErr.time ? ` <span class="dim">on bar ${codeErr.bar} (${new Date(codeErr.time * 1000).toLocaleDateString()})</span>` : ''}`, 'dn');
+      return;
+    }
+    const good = results.find(r => r.res);
+    BT_LAST = { results, sel: 0, code: ed.value, declared: good ? good.res.declared : null, st: { ...st } };
+    if (good) drawParams(good.res.declared);
+    const errs = results.filter(r => r.err);
+    con(good ? `<span class="up">Done.</span> <span class="dim">${results.filter(r => r.res).length} symbol(s) · ${good.res.trades.length + (good.res.openTrade ? 1 : 0)} trades on ${esc(disp(good.y))} · ${good.data.t.length} bars</span>${errs.map(r => `<div class="dn">${esc(r.y)}: ${esc(r.err)}</div>`).join('')}`
+      : errs.map(r => `<div class="dn">${esc(r.y)}: ${esc(r.err)}</div>`).join(''));
+    show();
+  }
+  $('#btrun', el).onclick = run;
+
+  // ---- results
+  const pc1 = v => ok(v) ? pc(v * 100) : '—';
+  const pu = v => ok(v) ? nf(v * 100, 1) + '%' : '—';
+  function show() {
+    const R = BT_LAST;
+    if (!R) return;
+    const multi = $('.multi', el);
+    if (R.results.length > 1) {
+      multi.innerHTML = `<table><thead><tr><th class="l">Symbol</th><th>Return</th><th>Buy &amp; hold</th><th>Excess</th><th>CAGR</th><th>Sharpe</th><th>Max DD</th><th>Trades</th><th>Win rate</th></tr></thead><tbody>` +
+        R.results.map((r, i) => r.res ? `<tr class="clk${i === R.sel ? ' selrow' : ''}" data-rs="${i}"><td class="l amb">${esc(disp(r.y))}</td><td class="${cls(r.res.stats.totalReturn)}">${pc1(r.res.stats.totalReturn)}</td><td class="dim">${pc1(r.res.stats.buyHold)}</td><td class="${cls(r.res.stats.excess)}">${pc1(r.res.stats.excess)}</td><td>${pc1(r.res.stats.cagr)}</td><td>${ok(r.res.stats.sharpe) ? nf(r.res.stats.sharpe, 2) : '—'}</td><td class="dn">${pc1(r.res.stats.maxDD)}</td><td>${r.res.stats.trades}</td><td>${pu(r.res.stats.winRate)}</td></tr>`
+          : `<tr><td class="l amb">${esc(r.y)}</td><td colspan="8" class="l dn">${esc(r.err)}</td></tr>`).join('') + '</tbody></table>';
+      $$('[data-rs]', multi).forEach(tr => tr.onclick = () => { R.sel = +tr.dataset.rs; show(); });
+    } else multi.innerHTML = '';
+    const cur = R.results[R.sel] && R.results[R.sel].res ? R.results[R.sel] : R.results.find(r => r.res);
+    if (!cur) return;
+    const { y, data, res } = cur, s = res.stats, off = data.meta.gmtoffset || 0, intra = /m$/.test(R.st.iv);
+    const k = (label, val, c, sub) => `<div class="kpi"><div class="dim">${label}</div><div class="big ${c || ''}">${val}</div><div class="dim">${sub || ''}</div></div>`;
+    $('.bk', el).innerHTML = k('Total return', pc1(s.totalReturn), cls(s.totalReturn), `buy &amp; hold ${pc1(s.buyHold)}`) +
+      k('CAGR', pc1(s.cagr), cls(s.cagr), `${nf(s.years, s.years < 1 ? 2 : 1)} years · ${s.bars} bars`) +
+      k('Sharpe', ok(s.sharpe) ? nf(s.sharpe, 2) : '—', s.sharpe > 1 ? 'up' : s.sharpe < 0 ? 'dn' : '', `Sortino ${ok(s.sortino) ? nf(s.sortino, 2) : '—'}`) +
+      k('Max drawdown', pc1(s.maxDD), 'dn', `Calmar ${ok(s.calmar) ? nf(s.calmar, 2) : '—'}`) +
+      k('Trades', s.trades, '', `win rate ${pu(s.winRate)}`) +
+      k('Profit factor', s.profitFactor === Infinity ? '∞' : ok(s.profitFactor) ? nf(s.profitFactor, 2) : '—', s.profitFactor > 1 ? 'up' : s.profitFactor < 1 ? 'dn' : '', `avg trade ${pc1(s.expectancy)}`) +
+      k('Exposure', pu(s.exposure), '', `time in the market · volatility ${pu(s.vol)}`) +
+      k('Final equity', '$' + big(s.end), cls(s.end - s.start), `from $${big(s.start)}`);
+    const x = data.t.map(t => btLabel(t, off, intra)), xl = i => btLabel(data.t[i], off, intra);
+    const cap = +R.st.cap || 100000, c0 = data.c[0];
+    mountChart($('canvas.eq', el), { x, xl, yf: v => '$' + big(v), s: [{ n: 'Strategy', d: res.equity, c: COLORS[0], fill: true, w: 1.6 }, { n: 'Buy & hold', d: data.c.map(c => cap * c / c0), c: COLORS[1], w: 1.1 }] });
+    const over = Object.entries(res.plots).filter(([, q]) => !q.lower), lower = Object.entries(res.plots).filter(([, q]) => q.lower);
+    const markC = { stop: '#ff9f43', trail: '#ff9f43', target: '#5aa9ff' };
+    mountChart($('canvas.px', el), {
+      x, xl, yf: v => nf(v, dec(y, v)),
+      s: [{ n: shortOf(y), d: data.c, c: '#c9ced8', w: 1.2 }, ...over.map(([n, q], i) => ({ n, d: q.d, c: q.c || COLORS[(i + 1) % COLORS.length], w: 1, noTag: true }))],
+      marks: res.fills.map(f => ({ i: f.i, up: f.side === 'BUY', c: markC[f.reason] })),
+    });
+    $('.pxl', el).innerHTML = `— ${esc(disp(y))} · <span class="up">▲ buy</span> <span class="dn">▼ sell</span> <span style="color:#ff9f43">▼ stop</span> <span class="blu">▼ target</span>${over.length ? ' · ' + over.map(([n], i) => `<span style="color:${over[i][1].c || COLORS[(i + 1) % COLORS.length]}">${esc(n)}</span>`).join(' ') : ''}`;
+    const lb = $('.lowbox', el);
+    lb.style.display = lower.length ? '' : 'none';
+    if (lower.length) {
+      mountChart($('canvas.lo', el), { x, xl, s: lower.map(([n, q], i) => ({ n, d: q.d, c: q.c || COLORS[(i + 2) % COLORS.length], w: 1.2 })) });
+      $('.lol', el).innerHTML = '— ' + lower.map(([n, q], i) => `<span style="color:${q.c || COLORS[(i + 2) % COLORS.length]}">${esc(n)}</span>`).join(' ');
+    }
+    tab();
+  }
+
+  // ---- tabs
+  $$('[data-bt]', el).forEach(b => b.onclick = () => { st.tab = b.dataset.bt; saveSt(); $$('[data-bt]', el).forEach(x => x.classList.toggle('on', x === b)); tab(); });
+  function tab() {
+    const box = $('.btab', el), t = st.tab || 'trades';
+    const R = BT_LAST, cur = R && (R.results[R.sel]?.res ? R.results[R.sel] : R.results.find(r => r.res));
+    if (t === 'api') {
+      box.innerHTML = '<div class="pad apidoc">' + BT_API.map(([g, rows]) => `<div class="h" style="margin:8px 0 4px">${g}</div><table><tbody>${rows.map(([sig, d]) => `<tr><td class="l"><code>${esc(sig)}</code></td><td class="l dim" style="white-space:normal">${esc(d)}</td></tr>`).join('')}</tbody></table>`).join('') +
+        '<div class="dim" style="margin-top:10px">Keys: Ctrl+Enter run · Ctrl+S save · Tab / Shift+Tab indent · Ctrl+/ comment. Strategies are saved in this browser.</div></div>';
+      return;
+    }
+    if (t === 'opt') return optTab(box);
+    if (!cur) { box.innerHTML = '<div class="empty">Run a backtest first.</div>'; return; }
+    const { y, data, res } = cur, off = data.meta.gmtoffset || 0, intra = /m$/.test(R.st.iv);
+    const when = ts => ts ? btLabel(ts, off, intra) : '—';
+    if (t === 'log') {
+      box.innerHTML = res.logs.length ? `<table><thead><tr><th class="l">Bar</th><th class="l">Message</th></tr></thead><tbody>${res.logs.slice(-1000).reverse().map(l => `<tr><td class="l dim">${l.t ? when(l.t) : 'start'}</td><td class="l" style="white-space:pre-wrap">${esc(l.msg)}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty">Nothing logged. Call log(…) in your strategy to print values here.</div>';
+      return;
+    }
+    const all = res.openTrade ? [...res.trades, res.openTrade] : res.trades;
+    const why = { signal: 'signal', stop: 'stop loss', trail: 'trailing stop', target: 'take profit', open: 'still open' };
+    box.innerHTML = all.length ? `<table><thead><tr><th></th><th class="l">Side</th><th class="l">Entry</th><th>Entry px</th><th class="l">Exit</th><th>Exit px</th><th>Qty</th><th>P&amp;L</th><th>Return</th><th>Bars</th><th class="l">Exit reason</th></tr></thead><tbody>` +
+      all.slice().reverse().map((x, i) => `<tr><td class="n">${all.length - i})</td><td class="l ${x.side === 'LONG' ? 'up' : 'dn'}">${x.side}</td><td class="l">${when(x.entryT)}</td><td>${nf(x.entryPx, dec(y, x.entryPx))}</td><td class="l">${x.exitT ? when(x.exitT) : '<span class="yel">open</span>'}</td><td>${nf(x.exitPx, dec(y, x.exitPx))}</td><td>${qf(x.qty)}</td><td class="${cls(x.pnl)}">${sgn(x.pnl)}</td><td class="${cls(x.ret)}">${pc1(x.ret)}</td><td>${x.bars}</td><td class="l dim">${why[x.reason] || x.reason}</td></tr>`).join('') + '</tbody></table>'
+      : '<div class="empty">No trades — the entry conditions never triggered.</div>';
+  }
+
+  // ---- optimization
+  const METRICS = [['sharpe', 'Sharpe'], ['cagr', 'CAGR'], ['totalReturn', 'Total return'], ['sortino', 'Sortino'], ['profitFactor', 'Profit factor'], ['maxDD', 'Max drawdown']];
+  let optRes = null;
+  function optTab(box) {
+    if (!declared || !Object.keys(declared).length) { box.innerHTML = '<div class="empty">Declare tunable values with param(name, default, min, max, step) and run a backtest; they can then be swept here.</div>'; return; }
+    const sw = st.sweep || (st.sweep = {});
+    const names = Object.keys(declared);
+    box.innerHTML = `<div class="pad"><div class="dim" style="margin-bottom:6px">Tests every combination on the <b>first symbol</b>. The first <input class="inp num" id="osplit" size="3" value="${esc(st.split)}">% of bars are in-sample (used to rank); the rest are an out-of-sample check the ranking never saw. Strategies that only shine in-sample are usually overfit.</div>
+      <table class="optp"><thead><tr><th>Sweep</th><th class="l">Parameter</th><th>From</th><th>To</th><th>Step</th><th>Values</th></tr></thead><tbody>${names.map((n, i) => {
+        const d = declared[n], c = sw[n] || { on: i < 2 && d.min != null, from: d.min ?? d.def, to: d.max ?? d.def, step: d.step ?? 1 };
+        return `<tr data-sw="${esc(n)}"><td><input type="checkbox" ${c.on ? 'checked' : ''}></td><td class="l amb">${esc(n)}</td><td><input class="inp num" size="6" value="${esc(c.from)}"></td><td><input class="inp num" size="6" value="${esc(c.to)}"></td><td><input class="inp num" size="5" value="${esc(c.step)}"></td><td class="dim cnt"></td></tr>`;
+      }).join('')}</tbody></table>
+      <div class="ticket" style="margin-top:8px"><span class="lbl">Rank by</span><select class="inp" id="ometric">${METRICS.map(([k, l]) => `<option value="${k}" ${k === st.metric ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <button class="btn buy" id="ogo">RUN OPTIMIZATION</button><span class="oprog dim"></span></div><div class="ores"></div></div>`;
+    const values = c => { const out = []; if (!(c.step > 0) || !ok(c.from) || !ok(c.to)) return [c.from]; for (let v = c.from; v <= c.to + 1e-9 && out.length < 60; v += c.step) out.push(+v.toFixed(8)); return out; };
+    const read = () => {
+      $$('[data-sw]', box).forEach(tr => {
+        const [cb, a, b, s] = $$('input', tr);
+        const c = sw[tr.dataset.sw] = { on: cb.checked, from: parseFloat(a.value), to: parseFloat(b.value), step: parseFloat(s.value) };
+        $('.cnt', tr).textContent = c.on ? values(c).length : '';
+      });
+      st.split = Math.min(100, Math.max(10, parseFloat($('#osplit', box).value) || 70));
+      st.metric = $('#ometric', box).value;
+      saveSt();
+      const total = Object.values(sw).filter(c => c.on).reduce((n, c) => n * values(c).length, 1);
+      $('.oprog', box).textContent = `${total} combinations`;
+      return total;
+    };
+    $$('input, select', box).forEach(i => { i.addEventListener('change', read); i.addEventListener('keydown', e => e.stopPropagation()); });
+    read();
+    if (optRes) drawOpt(box);
+    $('#ogo', box).onclick = async () => {
+      const total = read();
+      const grid = {};
+      Object.entries(sw).forEach(([n, c]) => { if (c.on && declared[n]) grid[n] = values(c); });
+      if (!Object.keys(grid).length) return p.msg('Tick at least one parameter to sweep');
+      if (total > 600) return p.msg(`${total} combinations — narrow the ranges or raise the steps (max 600)`);
+      readSettings();
+      const y = parseSyms(st.syms)[0];
+      if (!y) return p.msg('Enter a symbol first');
+      const btn = $('#ogo', box); btn.disabled = true;
+      $('.oprog', box).textContent = 'loading data…';
+      try {
+        const data = await btData(y, st.iv, st.rg, st.adj);
+        const r = await BTW.call({ type: 'optimize', code: ed.value, data: btPayload(data), opt: btOpt(st, y, data), grid, split: st.split / 100 },
+          { timeout: 180000, progress: f => { if (p.alive(el)) $('.oprog', box).textContent = `testing… ${Math.round(f * 100)}%`; } });
+        optRes = { ...r, y, data, metric: st.metric, split: st.split };
+        if (p.alive(el) && (st.tab || 'trades') === 'opt') { $('.oprog', $('.btab', el)).textContent = `${r.n} combinations tested`; drawOpt($('.btab', el)); }
+      } catch (e) {
+        if (p.alive(el)) { $('.oprog', box).textContent = ''; if (e.code) { ed.markError(e.line); con(esc(e.message) + (e.line ? ` — line ${e.line}` : ''), 'dn'); } else p.msg(e.message); }
+      } finally { if (btn.isConnected) btn.disabled = false; }
+    };
+  }
+  function drawOpt(box) {
+    const r = optRes, m = r.metric, lbl = METRICS.find(x => x[0] === m)[1];
+    const fmt = (s, k) => !s ? '—' : k === 'sharpe' || k === 'sortino' || k === 'profitFactor' ? (s[k] === Infinity ? '∞' : ok(s[k]) ? nf(s[k], 2) : '—') : pc1(s[k]);
+    const val = s => s && ok(s[m]) ? (s[m] === Infinity ? 1e9 : s[m]) : -Infinity;
+    const rows = r.rows.filter(x => x.is).sort((a, b) => val(b.is) - val(a.is));
+    const names = Object.keys(rows[0]?.params || {});
+    // Spearman rank correlation between in-sample and out-of-sample scores: low means the ranking doesn't carry over
+    let rho = null;
+    const both = rows.filter(x => x.oos && val(x.oos) > -Infinity);
+    if (both.length > 4) {
+      const rank = arr => { const idx = arr.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]); const rk = []; idx.forEach(([, i], k) => rk[i] = k); return rk; };
+      const a = rank(both.map(x => val(x.is))), b = rank(both.map(x => val(x.oos))), n = both.length;
+      rho = 1 - 6 * a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0) / (n * (n * n - 1));
+    }
+    const best = rows[0];
+    $('.ores', box).innerHTML = (best ? `<div class="box" style="margin:8px 0">Best in-sample ${esc(lbl)}: <b class="amb">${names.map(n => `${esc(n)} = ${best.params[n]}`).join(', ')}</b> → in-sample ${fmt(best.is, m)}, out-of-sample <b>${fmt(best.oos, m)}</b> (${esc(disp(r.y))}, split at ${fD(xd(r.cutT, 0))}).
+      ${rho != null ? `<br><span class="${rho > 0.3 ? 'up' : rho < 0 ? 'dn' : 'yel'}">In-sample vs out-of-sample rank correlation ${nf(rho, 2)}</span> <span class="dim">— ${rho > 0.3 ? 'parameter choice carries over reasonably' : 'weak: the best in-sample settings may be overfit'}</span>` : ''}</div>` : '') +
+      `<table><thead><tr><th></th>${names.map(n => `<th>${esc(n)}</th>`).join('')}<th>IS ${esc(lbl)}</th><th>IS return</th><th>IS max DD</th><th>IS trades</th><th>OOS ${esc(lbl)}</th><th>OOS return</th><th>OOS max DD</th><th></th></tr></thead><tbody>` +
+      rows.slice(0, 100).map((x, i) => `<tr><td class="n">${i + 1})</td>${names.map(n => `<td class="amb">${x.params[n]}</td>`).join('')}<td><b>${fmt(x.is, m)}</b></td><td class="${cls(x.is.totalReturn)}">${pc1(x.is.totalReturn)}</td><td class="dn">${pc1(x.is.maxDD)}</td><td>${x.is.trades}</td>
+        <td><b>${fmt(x.oos, m)}</b></td><td class="${cls(x.oos?.totalReturn)}">${pc1(x.oos?.totalReturn)}</td><td class="dn">${pc1(x.oos?.maxDD)}</td><td><button class="btn" data-apply="${i}">APPLY</button></td></tr>`).join('') + '</tbody></table>' +
+      (r.rows.some(x => x.err) ? `<div class="pad dn">${r.rows.filter(x => x.err).length} combinations failed: ${esc(r.rows.find(x => x.err).err)}</div>` : '');
+    $$('[data-apply]', box).forEach(b => b.onclick = () => { st.params = { ...st.params, ...rows[+b.dataset.apply].params }; saveSt(); drawParams(); run(); });
+  }
+
+  if (BT_LAST && BT_LAST.code === st.code) show(); else tab();
+  if (autorun) run();
+}
+
+// ---------------------------------------------------------------- BOT: paper-trading bots
+let BOTS = store.get('bots', []);
+const saveBots = () => store.set('bots', BOTS);
+// interval -> [history range to load, seconds per bar, label]
+const BOT_IV = { '1m': ['5d', 60, '1 min'], '5m': ['1mo', 300, '5 min'], '15m': ['1mo', 900, '15 min'], '60m': ['6mo', 3600, 'Hourly'], '1d': ['2y', 86400, 'Daily'] };
+function botLog(b, msg, kind = 'info', t = Date.now() / 1000) { b.log.unshift({ t, msg: String(msg).slice(0, 300), kind }); if (b.log.length > 300) b.log.length = 300; }
+function botLedger(b, d, px) {
+  if (b.qty === 0 || Math.sign(b.qty) === Math.sign(d)) { b.avg = (b.avg * Math.abs(b.qty) + px * Math.abs(d)) / (Math.abs(b.qty) + Math.abs(d)); b.qty += d; }
+  else {
+    const closing = Math.min(Math.abs(d), Math.abs(b.qty));
+    b.realized += (px - b.avg) * closing * Math.sign(b.qty);
+    const nq = b.qty + d;
+    if (nq !== 0 && Math.sign(nq) !== Math.sign(b.qty)) b.avg = px;
+    b.qty = nq;
+  }
+  b.qty = Math.round(b.qty * 1e6) / 1e6;
+  if (!b.qty) b.avg = 0;
+  b.fills = (b.fills || 0) + 1;
+}
+async function botTrade(b, want, why) {
+  const d = Math.round((want - b.qty) * 1e6) / 1e6;
+  if (!d) return;
+  const r = await trade(d > 0 ? 'BUY' : 'SELL', b.sym, Math.abs(d), 'BOT ' + b.name);
+  botLedger(b, d > 0 ? r.qty : -r.qty, r.px);
+  botLog(b, `${r.side} ${qf(r.qty)} ${shortOf(b.sym)} @ ${nf(r.px, dec(b.sym, r.px))}${why ? ' — ' + why : ''} → position ${qf(b.qty)}`, 'trade');
+}
+async function botStep(b) {
+  const [rg, sec] = BOT_IV[b.iv] || BOT_IV['1d'];
+  b.next = Date.now() + Math.min(15 * 60e3, Math.max(30e3, sec * 500));
+  try {
+    const c = await api(`chart?symbol=${encodeURIComponent(b.sym)}&range=${rg}&interval=${b.iv}`);
+    const q = await ensureQuote(b.sym);
+    let n = c.t.length;
+    const now = Date.now() / 1000;
+    // drop the bar that is still forming
+    if (n && (b.iv === '1d' ? q && q.state === 'REGULAR' && now - c.t[n - 1] < 86400 : now < c.t[n - 1] + sec)) n--;
+    if (n < 2) throw new Error('not enough completed bars yet');
+    const lastT = c.t[n - 1];
+    b.checked = Date.now(); b.err = '';
+    if (b.lastBar === lastT) return;
+    const cut = a => a.slice(0, n);
+    const r = await BOTW.call({ type: 'signal', code: b.code, data: { t: cut(c.t), o: cut(c.o), h: cut(c.h), l: cut(c.l), c: cut(c.c), v: cut(c.v) }, opt: { capital: b.alloc, fractional: isFracSym(b.sym), gmtoffset: c.meta.gmtoffset || 0 } }, { timeout: 20000 });
+    const first = b.lastBar == null;
+    r.logs.filter(l => l.t && (first ? l.t === lastT : l.t > b.lastBar)).forEach(l => botLog(b, l.msg, 'log', l.t));
+    b.lastBar = lastT;
+    const exp = Math.round(r.final.exposure * 100) / 100;
+    if (first) {
+      botLog(b, `Watching ${n} completed ${BOT_IV[b.iv][2].toLowerCase()} bars of ${shortOf(b.sym)}; strategy exposure now ${nf(exp * 100, 0)}%`);
+      if (b.sync !== 'now' || !exp) { b.simExp = exp; return; }
+    } else if (Math.sign(exp) === Math.sign(b.simExp) && Math.abs(exp - b.simExp) < 0.05) return;
+    // Size against the bot's own equity (allocation + its P&L) at the live price
+    const px = (await ensureQuote(b.sym))?.price;
+    if (!ok(px)) throw new Error('no live price for ' + b.sym);
+    const eq = b.alloc + b.realized + (b.qty ? (px - b.avg) * b.qty : 0);
+    const raw = Math.abs(eq * exp) / px;
+    const want = Math.sign(exp) * (isFracSym(b.sym) ? Math.floor(raw * 1e6) / 1e6 : Math.floor(raw));
+    await botTrade(b, want, `strategy exposure ${nf(exp * 100, 0)}%`);
+    b.simExp = exp;
+  } catch (e) {
+    b.err = e.message;
+    botLog(b, (e.code ? 'Strategy error: ' : 'Error: ') + e.message + (e.line ? ` (line ${e.line})` : ''), 'err');
+    if (e.code) { b.on = false; botLog(b, 'Stopped because of the strategy error', 'err'); }
+  } finally { saveBots(); }
+}
+// Only one browser tab runs the bots (otherwise every open tab would place the same trades)
+let botLeader = !navigator.locks;
+navigator.locks?.request('market-terminal-bots', () => { botLeader = true; return new Promise(() => { }); }).catch(() => { botLeader = true; });
+// Keep bots and the paper portfolio in sync with changes made in other tabs
+window.addEventListener('storage', e => {
+  if (e.key === 'term.bots') BOTS = store.get('bots', []);
+  if (e.key === 'term.pf') PF = store.get('pf', PF);
+});
+let botBusy = false;
+async function botLoop() {
+  if (botBusy || !botLeader) return;
+  botBusy = true;
+  try { for (const b of BOTS) if (b.on && Date.now() >= (b.next || 0)) await botStep(b); }
+  finally { botBusy = false; }
+}
+setInterval(botLoop, 10e3);
+setTimeout(botLoop, 3000);
+
+FN.BOT = {
+  d: 'Trading bots: run your strategies live against the paper portfolio (PORT)', cat: 'strat',
+  r(p, y, arg) {
+    p.title = 'Trading Bots — Paper Trading';
+    p.syms = [...new Set(BOTS.map(b => b.sym))];
+    const nw = arg && typeof arg === 'object' && arg.new;
+    const ivSel = nw && nw.iv || '1d';
+    return `<div class="bar"><button class="btn buy" id="bnew">+ NEW BOT</button><span class="lbl">Bots trade your paper portfolio (PORT) at live prices, once per completed bar, while this terminal is open in a browser tab.</span>${botLeader ? '' : '<span class="lbl yel">Bots are running in another open tab of this terminal.</span>'}</div>
+      <div class="pad bform" style="${nw ? '' : 'display:none'}"><div class="box"><div class="t">New bot</div><div class="ticket">
+        <span class="lbl">Name</span><input class="inp" id="bn" size="14" value="${esc(nw ? (shortOf(nw.sym) + ' ' + stratLabel(nw.key).replace(' (template)', '')).slice(0, 30) : 'Bot ' + (BOTS.length + 1))}">
+        <span class="lbl">Strategy</span><select class="inp" id="bs">${stratOpts(nw ? (nw.code === stratCode(nw.key) ? nw.key : '__bt') : 'tpl:sma', nw && nw.code !== stratCode(nw.key) ? `<option value="__bt" selected>Code from BTST: ${esc(nw.label)}</option>` : '')}</select>
+        <span class="lbl">Symbol</span><input class="inp" id="by" size="10" value="${esc(nw ? shortOf(nw.sym) === nw.sym ? nw.sym : disp(nw.sym) : 'SPY')}">
+        <span class="lbl">Bars</span><select class="inp" id="bi">${Object.entries(BOT_IV).map(([k, v]) => `<option value="${k}" ${k === ivSel ? 'selected' : ''}>${v[2]}</option>`).join('')}</select>
+        <span class="lbl">Allocation $</span><input class="inp num" id="ba" size="9" value="10000">
+        <span class="lbl">On start</span><select class="inp" id="bsync"><option value="next">wait for the next signal</option><option value="now">take the strategy's current position</option></select>
+        <button class="btn buy" id="bgo">CREATE &amp; START</button><button class="btn" id="bx">CANCEL</button></div>
+        <div class="dim" style="margin-top:6px">Backtest the strategy on the same bar size in BTST first. Each bot sizes trades from its allocation plus its own P&amp;L; fills go into PORT tagged with the bot's name.</div></div></div>
+      <div class="bots"></div><div class="pad h blh"></div><div class="blog"></div>`;
+  },
+  m(p, el, y, arg) {
+    const nw = arg && typeof arg === 'object' && arg.new;
+    let sel = store.get('bot.sel', null);
+    const form = $('.bform', el);
+    $('#bnew', el).onclick = () => { form.style.display = ''; $('#bn', el).focus(); };
+    $('#bx', el).onclick = () => { form.style.display = 'none'; };
+    $$('.bform input, .bform select', el).forEach(i => i.addEventListener('keydown', e => e.stopPropagation()));
+    $('#bgo', el).onclick = async () => {
+      const name = $('#bn', el).value.trim().slice(0, 30) || 'Bot';
+      const key = $('#bs', el).value, code = key === '__bt' ? nw.code : stratCode(key);
+      const sym = resolve($('#by', el).value.toUpperCase().trim().split(/\s+/));
+      const alloc = parseFloat($('#ba', el).value);
+      if (!code) return p.msg('Pick a strategy');
+      if (!sym) return p.msg('Enter a symbol');
+      if (!(alloc > 0)) return p.msg('Allocation must be a positive dollar amount');
+      if (isYield(sym)) return p.msg('Yield indices are not tradable');
+      try { await BOTW.call({ type: 'check', code }); } catch (e) { return p.msg('Strategy error: ' + e.message + (e.line ? ` (line ${e.line})` : '')); }
+      if ((await quoteCheck(sym)) === false) return p.msg('Unknown symbol ' + sym);
+      const b = { id: Date.now().toString(36), name, key: key === '__bt' ? nw.key : key, strat: key === '__bt' ? nw.label : stratLabel(key), code, sym, iv: $('#bi', el).value, alloc, sync: $('#bsync', el).value,
+        on: true, qty: 0, avg: 0, realized: 0, fills: 0, log: [], created: Date.now(), next: 0, lastBar: null, simExp: null };
+      botLog(b, `Created: ${b.strat} on ${disp(sym)}, ${BOT_IV[b.iv][2].toLowerCase()} bars, $${nf(alloc, 0)} allocation`);
+      BOTS.push(b); saveBots(); store.set('bot.sel', b.id);
+      p.go('BOT', null, null, false);
+      botLoop();
+    };
+    const statusOf = b => b.on ? (b.err ? `<span class="yel" title="${esc(b.err)}">RUNNING ⚠</span>` : '<span class="up">RUNNING</span>') : b.err ? `<span class="dn" title="${esc(b.err)}">STOPPED</span>` : '<span class="dim">STOPPED</span>';
+    const draw = () => {
+      if (!p.alive(el)) return;
+      const rows = BOTS.map(b => {
+        const px = Q[b.sym]?.price, unr = ok(px) && b.qty ? (px - b.avg) * b.qty : 0, tot = b.realized + unr;
+        return `<tr class="clk${b.id === sel ? ' selrow' : ''}" data-bsel="${b.id}"><td class="l amb">${esc(b.name)}</td><td class="l name" title="${esc(b.strat)}">${esc(b.strat)}</td><td class="l">${esc(shortOf(b.sym))}</td><td class="l dim">${BOT_IV[b.iv]?.[2] || b.iv}</td><td class="l">${statusOf(b)}</td>
+          <td>${qf(b.qty)}</td><td>${b.qty ? nf(b.avg, dec(b.sym, b.avg)) : '—'}</td><td>${L(b.sym, 'price')}</td><td class="${cls(unr)}">${b.qty ? sgn(unr) : '—'}</td><td class="${cls(b.realized)}">${sgn(b.realized)}</td>
+          <td class="${cls(tot)}">${pc(tot / b.alloc * 100)}</td><td>${b.fills || 0}</td><td class="dim">${b.lastBar ? ago(b.lastBar) : '—'}</td>
+          <td class="l">${b.on ? `<button class="btn sell" data-stop="${b.id}">STOP</button>` : `<button class="btn buy" data-start="${b.id}">START</button>`} <button class="btn" data-edit="${b.id}" title="Open the bot's code in BTST">CODE</button> <button class="btn" data-del="${b.id}" title="Delete">✕</button></td></tr>`;
+      }).join('');
+      $('.bots', el).innerHTML = BOTS.length ? `<table><thead><tr><th class="l">Bot</th><th class="l">Strategy</th><th class="l">Symbol</th><th class="l">Bars</th><th class="l">Status</th><th>Position</th><th>Avg cost</th><th>Last</th><th>Unreal. P&amp;L</th><th>Realized</th><th>Return</th><th>Fills</th><th>Last bar</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+        : '<div class="empty">No bots yet. Press <span class="amb">+ NEW BOT</span>, or open BTST, test a strategy and press <span class="amb">MAKE BOT</span>.</div>';
+      const b = BOTS.find(x => x.id === sel) || BOTS[0];
+      $('.blh', el).innerHTML = b ? `LOG — ${esc(b.name)} <span class="dim">· ${esc(b.strat)} · ${esc(disp(b.sym))} · next check ${b.on && b.next ? new Date(Math.max(b.next, Date.now())).toLocaleTimeString() : '—'}</span>` : '';
+      $('.blog', el).innerHTML = b ? `<table><tbody>${b.log.slice(0, 150).map(l => `<tr><td class="l dim" style="width:1%">${new Date(l.t * 1000).toLocaleString()}</td><td class="l ${l.kind === 'err' ? 'dn' : l.kind === 'trade' ? 'amb' : l.kind === 'log' ? 'blu' : ''}" style="white-space:pre-wrap">${esc(l.msg)}</td></tr>`).join('')}</tbody></table>` : '';
+    };
+    el.addEventListener('click', async e => {
+      const t = e.target.closest('[data-stop],[data-start],[data-edit],[data-del],[data-bsel]');
+      if (!t) return;
+      const id = t.dataset.stop || t.dataset.start || t.dataset.edit || t.dataset.del || t.dataset.bsel, b = BOTS.find(x => x.id === id);
+      if (!b) return;
+      if (t.dataset.stop) {
+        b.on = false; botLog(b, 'Stopped');
+        if (b.qty && confirm(`Also close ${b.name}'s position of ${qf(b.qty)} ${shortOf(b.sym)}?`)) { try { await botTrade(b, 0, 'closed on stop'); } catch (err) { botLog(b, 'Error: ' + err.message, 'err'); p.msg(err.message); } }
+        saveBots();
+      } else if (t.dataset.start) {
+        Object.assign(b, { on: true, err: '', next: 0, lastBar: null, simExp: null }); botLog(b, 'Started'); saveBots(); botLoop();
+      } else if (t.dataset.edit) {
+        store.set('bt', { ...btState(), name: STRATS[b.key] === b.code || stratCode(b.key) === b.code ? b.key : '', code: b.code, syms: shortOf(b.sym) === b.sym ? b.sym : disp(b.sym), iv: b.iv, rg: BT_IVS.find(x => x[0] === b.iv)?.[2].slice(-1)[0] || '5Y', params: {} });
+        return p.go('BTST');
+      } else if (t.dataset.del) {
+        if (!confirm(`Delete bot "${b.name}"?${b.qty ? ` Its position of ${qf(b.qty)} ${shortOf(b.sym)} stays in PORT.` : ''}`)) return;
+        BOTS = BOTS.filter(x => x !== b); saveBots();
+      } else { sel = id; store.set('bot.sel', id); }
+      draw(); requestPoll();
+    });
+    draw();
+    p.tick = draw;
+  },
+};
+
 /* =====================================================================
    Panels
    ===================================================================== */
@@ -2649,11 +3802,11 @@ class Panel {
     if (t[0] === 'MENU' || t[0] === 'BACK') return this.back();
     if (t[0] === 'SATOPEN') return openSat(this, +t[1]);
     if (t[0] === 'BUY' || t[0] === 'SELL') {
-      const qi = t.findIndex((x, i) => i > 0 && /^\d+$/.test(x));
+      const qi = t.findIndex((x, i) => i > 0 && /^\d+(\.\d+)?$/.test(x));
       const qty = qi > 0 ? +t[qi] : 0;
       const y = resolve(t.slice(1).filter((_, i) => i + 1 !== qi)) || this.cur?.sec;
       if (!y || !qty) return this.msg('Usage: BUY <qty> <security>   e.g. BUY 100 AAPL');
-      try { const r = await trade(t[0], y, qty); this.msg(`FILLED: ${r.side} ${nf(r.qty, 0)} ${disp(y)} @ ${nf(r.px, dec(y, r.px))}`, true); if (this.cur?.fn === 'PORT') this.rerender(); }
+      try { const r = await trade(t[0], y, qty); this.msg(`FILLED: ${r.side} ${qf(r.qty)} ${disp(y)} @ ${nf(r.px, dec(y, r.px))}`, true); if (this.cur?.fn === 'PORT') this.rerender(); }
       catch (e) { this.msg(e.message); }
       return;
     }
@@ -2793,7 +3946,7 @@ function pressKey(label) {
   p.inp.value = p.inp.value.trim() + ' ' + yk + ' ';
   p.inp.focus();
 }
-const LAUNCH = ['EDGE', 'WEI', 'MOST', 'INSB', 'UOA', 'WIRP', 'PRED', 'SENT', 'ECO', 'OIL', 'SHIP', 'TANK', 'TOP', 'HELP'];
+const LAUNCH = ['EDGE', 'WEI', 'MOST', 'INSB', 'UOA', 'WIRP', 'PRED', 'ECO', 'OIL', 'SHIP', 'FTRK', 'BTST', 'BOT', 'TOP', 'HELP'];
 function buildChrome() {
   $('#launch').innerHTML = LAUNCH.map(f => `<button data-f="${f}" title="${esc(FN[f].d)}">${f}</button>`).join('');
   $('#launch').onclick = e => { const b = e.target.closest('[data-f]'); if (b) PANELS[active].run(b.dataset.f); };

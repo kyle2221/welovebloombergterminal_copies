@@ -2,6 +2,6 @@
   "name": "market-terminal",
   "private": true,
   "description": "Bloomberg-style market terminal with real market data",
-  "scripts": { "start": "node server.js" },
+  "scripts": { "start": "node server.js", "test": "node test/engine.test.js" },
   "engines": { "node": ">=18" }
 }
