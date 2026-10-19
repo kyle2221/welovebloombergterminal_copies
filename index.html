@@ -510,6 +510,12 @@ function requestPoll() { clearTimeout(pollTimer); pollTimer = setTimeout(poll, 6
 setInterval(() => { if (!document.hidden) poll(); }, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 
+// true = symbol exists, false = data server says it doesn't, null = couldn't check (data unavailable)
+async function quoteCheck(y) {
+  if (Q[y] || REV[y]) return true;
+  try { ingest(await api('quotes?symbols=' + encodeURIComponent(y))); } catch { return null; }
+  return Q[y] ? true : connState === true ? false : null;
+}
 async function ensureQuote(y) {
   if (Q[y]) return Q[y];
   try { ingest(await api('quotes?symbols=' + encodeURIComponent(y))); } catch { }
@@ -2673,11 +2679,11 @@ class Panel {
         if (!sec) return this.msg(`${fn} requires a security — e.g. AAPL US EQUITY ${fn} <GO>`);
       }
       if (sec && !FN[fn].sec) sec = null;
-      if (sec && !REV[sec] && !Q[sec] && !(await ensureQuote(sec))) return this.go('SECF', null, rest.join(' ') || sec);
+      if (sec && (await quoteCheck(sec)) === false) return this.go('SECF', null, rest.join(' ') || sec);
       return this.go(fn, sec, arg);
     }
     // Security only
-    if (!(await ensureQuote(sec)) && !REV[sec]) return this.go('SECF', null, rest.join(' '));
+    if ((await quoteCheck(sec)) === false) return this.go('SECF', null, rest.join(' '));
     this.go(isEquity(sec) ? 'DES' : 'GP', sec);
   }
   // ---- autocomplete
