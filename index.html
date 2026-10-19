@@ -1575,7 +1575,7 @@ FN.WSB = {
       const dl = d.daily;
       $('.w-daily', el).innerHTML = !dl ? '<div class="dim">No daily thread pinned right now.</div>'
         : `<div style="margin-bottom:6px"><a class="amb" href="${esc(safeUrl(dl.link))}" target="_blank" rel="noopener noreferrer">${esc(dl.title)} ↗</a></div>` + (dl.err ? `<div class="dim">Comments unavailable: ${esc(dl.err)}</div>`
-          : `${dl.tickers?.length ? `<div style="margin-bottom:6px"><span class="dim">Tickers in the thread:</span> ${dl.tickers.slice(0, 15).map(x => `${tkChip(x.sym)}<span class="dim">×${x.n}</span>`).join(' ')}</div>` : ''}<div class="dlist">` +
+          : `${dl.stream ? '<div class="dim" style="margin-bottom:6px">Thread comments are rate-limited right now, so these are the latest comments across r/wallstreetbets.</div>' : ''}${dl.tickers?.length ? `<div style="margin-bottom:6px"><span class="dim">Tickers in the ${dl.stream ? 'comments' : 'thread'}:</span> ${dl.tickers.slice(0, 15).map(x => `${tkChip(x.sym)}<span class="dim">×${x.n}</span>`).join(' ')}</div>` : ''}<div class="dlist">` +
             dl.comments.slice(0, 80).map(c => `<div class="dcom"><span class="dim">${c.score != null ? '▲' + c.score + ' · ' : ''}${c.t ? ago(c.t) : ''} · u/${esc(c.author)}</span><div>${esc(c.body)}</div></div>`).join('') + '</div>');
       $('.w-posts', el).innerHTML = d.err && !d.posts.length ? busy : rdPosts(d.posts.filter(x => !x.sticky), 40);
       if (d.err && !d.words.length) $('.w-cloud', el).innerHTML = busy;
