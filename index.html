@@ -2765,7 +2765,7 @@ async function initFtrk(p, el, st) {
         const d = await api(tab === 'find' ? 'air?q=' + encodeURIComponent(st.q || '') : { mil: 'airmil', sq: 'airsq', biz: 'airbiz' }[tab]);
         list = d.ac.sort((a, b) => ((a.lat == null) - (b.lat == null)) || (b.mil - a.mil) || (a.gnd - b.gnd) || (b.alt ?? -1) - (a.alt ?? -1));
         recordPlanes(list); savePtrk();
-        note = tab === 'biz' ? 'Gulfstream G650/G700/G800/G550/G600, Global 7500/6000/5000, Falcon 7X/8X, Challenger 350, Citation Longitude/Latitude. Track a tail number to follow a specific jet.' : tab === 'mil' ? 'Military aircraft flagged in the community ADS-B database. Many military flights do not broadcast ADS-B.' : '';
+        note = tab === 'biz' ? 'Gulfstream G650/G700/G800/G550/G600, Global 7500/6000/5000, Falcon 7X/8X, Challenger 350, Citation Longitude/Latitude. Track a tail number to follow a specific jet.' + (d.missing?.length ? ` Not loaded this time (data source rate limit): ${esc(d.missing.join(', '))}.` : '') : tab === 'mil' ? 'Military aircraft flagged in the community ADS-B database. Many military flights do not broadcast ADS-B.' : '';
         if (tab === 'find' && !list.length) note = '';
       }
       if (!p.alive(el) || tab !== st.tab) return;
