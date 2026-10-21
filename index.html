@@ -316,6 +316,30 @@ table.fa td:first-child{white-space:nowrap}
   #grid.l2 .panel:nth-child(n+3){display:flex}
   #clocks span:nth-child(n+2){display:none}
 }
+/* research: SPLC / SEG / BRC / RV / DCF / MGMT */
+.cols>.span2{grid-column:1/-1}
+.rate{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:700;letter-spacing:.04em;font-size:11px}
+.rate.b{background:rgba(33,208,122,.16);color:var(--up)}.rate.h{background:rgba(255,216,77,.14);color:var(--yel)}.rate.s{background:rgba(255,77,94,.16);color:var(--dn)}
+.sbar{display:block;height:8px;background:#1b2029;border-radius:4px;overflow:hidden;min-width:60px}.sbar i{display:block;height:100%;background:var(--amber)}
+.quote{border-left:2px solid var(--amber);padding:3px 8px;margin:4px 0;white-space:normal;line-height:1.5}
+.quote mark{background:rgba(255,166,43,.3);color:#fff;padding:0 1px}
+.note ul{margin:0;padding-left:16px}.note li{white-space:normal;line-height:1.55;margin-bottom:6px}.note b{color:var(--amber);font-weight:600}
+svg.net{width:100%;height:auto;max-height:470px;display:block;font-family:inherit}
+svg.net g[data-cmd]:hover rect{fill:#18202c}
+.ff .row{display:grid;grid-template-columns:130px 1fr 130px;align-items:center;gap:10px;margin:7px 0}
+.ff .row>span:last-child{text-align:right}
+.ff .trk{position:relative;height:14px;background:#11151c;border-radius:3px}
+.ff .rng{position:absolute;top:2px;bottom:2px;border-radius:2px;opacity:.85}
+.ff .mk{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff}
+.ff .px{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed var(--amber)}
+table.sens td.base{background:rgba(255,166,43,.2);color:#fff;font-weight:700}
+.dcf .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px}
+.dcf label{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--dim)}
+.dcf label input{width:96px}
+th.sort{cursor:pointer;user-select:none}th.sort:hover{color:var(--amber)}
+tr.subj td{background:rgba(255,166,43,.09)}tr.agg td{color:var(--yel);border-top:1px solid var(--line2)}
+tr.why td{background:#0b0e13}
+table.rv td,table.rv th{padding-left:6px;padding-right:6px}
 </style>
 </head>
 <body>
@@ -835,7 +859,8 @@ const secRow = (p, y, n, cells) => `<tr class="clk" data-cmd="${esc(disp(y))} ${
 const HELP_GROUPS = [
   ['Market Monitors', ['WEI', 'MOST', 'IMAP', 'FXC', 'GLCO', 'CRYP', 'GC', 'EQS']],
   ['News & Social', ['TOP', 'N', 'CN', 'WSB', 'REDDIT', 'BUZZ']],
-  ['Security Analysis', ['DES', 'TV', 'GP', 'GIP', 'HP', 'Q', 'FA', 'EE', 'ANR', 'CF', 'DVD', 'COMP']],
+  ['Security Analysis', ['DES', 'TV', 'GP', 'GIP', 'HP', 'Q', 'FA', 'CF', 'DVD', 'COMP']],
+  ['Equity Research & Company Data', ['BRC', 'ANR', 'EE', 'RV', 'DCF', 'SPLC', 'SEG', 'PGEO', 'MGMT', 'HDS']],
   ['Edge: Insiders, Flow & Positioning', ['EDGE', 'INSB', 'INSD', 'CONG', 'HDS', 'OMON', 'UOA', 'SI', 'SHRT']],
   ['Macro, Events & Sentiment', ['WIRP', 'ECST', 'PRED', 'SENT', 'ECO', 'EARN']],
   ['Geospatial & Alternative Data', ['BMAP', 'FLT', 'FTRK', 'SHIP', 'TRACK', 'TANK', 'SAT', 'OIL', 'MIL']],
@@ -1165,7 +1190,7 @@ FN.CN = {
 };
 
 // ---------------------------------------------------------------- DES
-const SEC_MENU = [['TV', 'TradingView Chart'], ['GP', 'Price Graph'], ['GIP', 'Intraday Graph'], ['HP', 'Historical Prices'], ['Q', 'Quote'], ['FA', 'Financials (Yahoo)'], ['EE', 'Earnings Estimates'], ['ANR', 'Analyst Recs'], ['CN', 'News (all sources)'], ['BUZZ', 'Reddit & WSB Buzz'], ['INSD', 'Insider Trades'], ['OMON', 'Options Monitor'], ['HDS', 'Holders'], ['SI', 'Short Interest'], ['DVD', 'Dividends'], ['CF', 'SEC Filings'], ['COMP', 'Comparative Returns']];
+const SEC_MENU = [['TV', 'TradingView Chart'], ['GP', 'Price Graph'], ['GIP', 'Intraday Graph'], ['HP', 'Historical Prices'], ['Q', 'Quote'], ['FA', 'Financials (Yahoo)'], ['EE', 'Earnings Estimates'], ['ANR', 'Analyst Recs'], ['BRC', 'Equity Research'], ['RV', 'Relative Valuation'], ['DCF', 'DCF Valuation'], ['SPLC', 'Supply Chain'], ['SEG', 'Segments & Geography'], ['MGMT', 'Management & Governance'], ['CN', 'News (all sources)'], ['BUZZ', 'Reddit & WSB Buzz'], ['INSD', 'Insider Trades'], ['OMON', 'Options Monitor'], ['HDS', 'Holders'], ['SI', 'Short Interest'], ['DVD', 'Dividends'], ['CF', 'SEC Filings'], ['COMP', 'Comparative Returns']];
 async function getSummary(y) { return cachedApi('sum:' + y, 300e3, 'summary?symbol=' + encodeURIComponent(y)); }
 const kv = rows => `<div class="kv">${rows.filter(Boolean).map(([k, v]) => `<span class="k">${k}</span><span class="v">${v}</span>`).join('')}</div>`;
 FN.DES = {
@@ -2662,6 +2687,25 @@ FN.CONG = {
 };
 
 // ---------------------------------------------------------------- HDS: holders
+const sbig = v => ok(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + big(Math.abs(v)) : '—';
+// Biggest buyers and sellers: change in reported position among the top 13F / fund holders, and insiders' own trades
+function hdsMovers(h, y) {
+  const px = Q[y]?.price;
+  const chg = (o, kind) => { const pos = rv(o.position), c = rv(o.pctChange); return ok(pos) && ok(c) && c > -1 && c !== 0 ? { name: o.organization, kind, d: pos - pos / (1 + c), c, pos, date: o.reportDate?.fmt || '' } : null; };
+  const mv = [...(h.institutionOwnership?.ownershipList || []).map(o => chg(o, 'Institution')), ...(h.fundOwnership?.ownershipList || []).map(o => chg(o, 'Fund'))].filter(Boolean);
+  const tbl = list => list.length ? `<table><thead><tr><th class="l">Holder</th><th class="l">Type</th><th>Shares Δ</th><th>Δ %</th><th>≈ Value Δ</th><th>Now holds</th><th class="l">As of</th></tr></thead><tbody>${list.map(m => `<tr><td class="l amb">${esc(m.name)}</td><td class="l dim">${m.kind}</td><td class="${cls(m.d)}">${sbig(m.d)}</td><td class="${cls(m.c)}">${pc(m.c * 100, 1)}</td><td class="${cls(m.d)}">${ok(px) ? sbig(m.d * px) : '—'}</td><td>${big(m.pos)}</td><td class="l dim">${esc(m.date)}</td></tr>`).join('')}</tbody></table>` : '<span class="dim">None among the top holders this quarter.</span>';
+  const since = Date.now() / 1000 - 183 * 86400, by = new Map();
+  for (const t of h.insiderTransactions?.transactions || []) {
+    const txt = t.transactionText || '', side = /^sale|sold/i.test(txt) ? -1 : /purchase|bought|buy/i.test(txt) ? 1 : 0;
+    if (!side || !(rv(t.startDate) > since)) continue;
+    const e = by.get(t.filerName) || { name: t.filerName, rel: t.filerRelation || '', v: 0, sh: 0, n: 0, last: '' };
+    e.v += side * (rv(t.value) || 0); e.sh += side * (rv(t.shares) || 0); e.n++; e.last = e.last || (rv(t.startDate) ? new Date(rv(t.startDate) * 1000).toISOString().slice(0, 10) : '');
+    by.set(t.filerName, e);
+  }
+  const ins = [...by.values()].sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).slice(0, 10);
+  const insT = ins.length ? `<table><thead><tr><th class="l">Insider</th><th class="l">Relation</th><th>Net shares</th><th>Net value</th><th>Trades</th><th class="l">Latest</th></tr></thead><tbody>${ins.map(e => `<tr><td class="l amb">${esc(e.name)}</td><td class="l dim">${esc(e.rel)}</td><td class="${cls(e.sh)}">${sbig(e.sh)}</td><td class="${cls(e.v)}">${e.v ? sbig(e.v) : '—'}</td><td>${e.n}</td><td class="l dim">${esc(e.last)}</td></tr>`).join('')}</tbody></table>` : '<span class="dim">No open-market insider purchases or sales in the last 6 months.</span>';
+  return `<div class="cols wide" style="margin-top:10px">${box('Biggest buyers — top holders adding', tbl(mv.filter(m => m.d > 0).sort((a, b) => b.d - a.d).slice(0, 10)))}${box('Biggest sellers — top holders cutting', tbl(mv.filter(m => m.d < 0).sort((a, b) => a.d - b.d).slice(0, 10)))}${box('Insider buyers & sellers (6M, open market)', insT)}</div>`;
+}
 FN.HDS = {
   d: 'Institutional, fund & insider holders', cat: 'edge', sec: true,
   r(p, y) { p.syms = [y]; return '<div class="pad res"><div class="empty spin"></div></div>'; },
@@ -2674,9 +2718,389 @@ FN.HDS = {
       $('.res', el).innerHTML = `<div class="cols">${box('Ownership Breakdown', kv([
         ['Insiders', pct0(rv(mh.insidersPercentHeld) * 100)], ['Institutions', pct0(rv(mh.institutionsPercentHeld) * 100)],
         ['Institutions (% of float)', pct0(rv(mh.institutionsFloatPercentHeld) * 100)], ['# Institutions', nf(rv(mh.institutionsCount), 0)],
-      ]))}${box('Institutional Flow (6M)', kv([['Net institutional buying', `<span class="${cls(rv(h.netSharePurchaseActivity?.netInstBuyingPercent))}">${pc(rv(h.netSharePurchaseActivity?.netInstBuyingPercent) * 100)}</span>`], ['Net institutional shares', big(rv(h.netSharePurchaseActivity?.netInstSharesBuying))]]))}</div>
+      ]))}${box('Institutional Flow (6M)', kv([['Net institutional buying', `<span class="${cls(rv(h.netSharePurchaseActivity?.netInstBuyingPercent))}">${pc(rv(h.netSharePurchaseActivity?.netInstBuyingPercent) * 100)}</span>`], ['Net institutional shares', big(rv(h.netSharePurchaseActivity?.netInstSharesBuying))]]))}${box('Insider Activity (6M)', kv([['Insider purchases', `<span class="up">${rv(h.netSharePurchaseActivity?.buyInfoCount) ?? 0}</span> · ${big(rv(h.netSharePurchaseActivity?.buyInfoShares))} sh`], ['Insider sales', `<span class="dn">${rv(h.netSharePurchaseActivity?.sellInfoCount) ?? 0}</span> · ${big(rv(h.netSharePurchaseActivity?.sellInfoShares))} sh`], ['Net insider shares', `<span class="${cls(rv(h.netSharePurchaseActivity?.netInfoShares))}">${sbig(rv(h.netSharePurchaseActivity?.netInfoShares))}</span>`], ['Insider shares held', big(rv(h.netSharePurchaseActivity?.totalInsiderShares))]]))}</div>
+        ${hdsMovers(h, y)}
         ${own(h.institutionOwnership?.ownershipList, 'TOP INSTITUTIONAL HOLDERS (13F)')}${own(h.fundOwnership?.ownershipList, 'TOP MUTUAL FUND / ETF HOLDERS')}
         <div class="dim" style="margin-top:8px">Source: 13F/N-PORT filings via Yahoo Finance. Institutional positions are reported quarterly with a lag of up to 45 days.</div>`;
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---------------------------------------------------------------- Company research: SPLC, SEG/PGEO, BRC, RV, DCF, MGMT
+const getSplc = y => cachedApi('splc:' + y, 3600e3, 'splc?symbol=' + encodeURIComponent(y));
+const getSeg = y => cachedApi('seg:' + y, 3600e3, 'seg?symbol=' + encodeURIComponent(y));
+const getRes = y => cachedApi('rsch:' + y, 900e3, 'research?symbol=' + encodeURIComponent(y));
+const getComps = syms => cachedApi('cmp:' + syms.join(','), 600e3, 'comps?symbols=' + syms.map(encodeURIComponent).join(','));
+const getHolders = y => cachedApi('hold:' + y, 600e3, 'holders?symbol=' + encodeURIComponent(y));
+const pf = (v, d = 1) => ok(v) ? nf(v * 100, d) + '%' : '—';
+const xf = v => ok(v) && v > 0 ? nf(v, 1) + 'x' : '—';
+const median = a => { const s = a.filter(ok).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
+const ySym = s => String(s || '').replace('.', '-'); // EDGAR "BRK.B" -> Yahoo "BRK-B"
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const rateCls = k => /strong_buy|buy|outperform|overweight|add|accumulate/i.test(k) ? 'b' : /sell|under/i.test(k) ? 's' : 'h';
+const rateBadge = k => k ? `<span class="rate ${rateCls(k)}">${esc(String(k).replace(/_/g, ' ').toUpperCase())}</span>` : '—';
+const fyOf = e => 'FY' + String(e).slice(0, 4);
+
+// ---- SPLC: supply chain
+const SPLC_TABS = [['map', 'MAP'], ['customers', 'CUSTOMERS'], ['suppliers', 'SUPPLIERS'], ['competitors', 'COMPETITORS'], ['disclosed', 'SELF-REPORTED']];
+const REL = {
+  customers: { t: 'Customers', sub: co => `buy from ${co}`, c: '#21d07a', how: co => `Their filings say they buy from or rely on ${co} (“purchases from …”, “manufactured by …”, “rely on …”).` },
+  suppliers: { t: 'Suppliers', sub: co => `sell to ${co}`, c: '#4aa8ff', how: co => `Their filings name ${co} as a customer (“sales to …”, “… accounted for x% of revenue”).` },
+  competitors: { t: 'Competitors', sub: co => `compete with ${co}`, c: '#ff6b6b', how: co => `Their filings name ${co} as a competitor.` },
+};
+function splcMap(d, y) {
+  const co = d.names?.[0] || nameOf(y), W = 1000, H = 430, cx = 500, cy = 190;
+  const named = d.disclosed.filter(r => r.side === 'customer' && !r.anon).map(r => ({ name: r.who, sym: null, tag: `${pf(r.pct, 0)} of ${r.benchmark}`, w: 6 }));
+  const col = (list, x, kind) => list.map((r, i, a) => ({ ...r, kind, x, y: 34 + (a.length === 1 ? 140 : i * (300 / Math.max(1, a.length - 1))) }));
+  const left = col(d.suppliers.slice(0, 9).map(r => ({ name: r.name, sym: r.sym, tag: `${r.filings} filing${r.filings > 1 ? 's' : ''}`, w: r.filings })), 150, 'suppliers');
+  const right = col([...named, ...d.customers.slice(0, 9 - Math.min(3, named.length)).map(r => ({ name: r.name, sym: r.sym, tag: `${r.filings} filing${r.filings > 1 ? 's' : ''}`, w: r.filings }))].slice(0, 9), 850, 'customers');
+  const comp = d.competitors.slice(0, 6), bottom = comp.map((r, i) => ({ name: r.name, sym: r.sym, tag: `${r.filings} filing${r.filings > 1 ? 's' : ''}`, w: r.filings, kind: 'competitors', x: comp.length === 1 ? cx : 170 + i * (660 / Math.max(1, comp.length - 1)), y: 395 }));
+  const trunc = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;
+  const node = n => {
+    const c = REL[n.kind].c, cmd = n.sym ? ` data-cmd="${esc(ySym(n.sym))} SPLC" style="cursor:pointer"` : '';
+    return `<g${cmd}><rect x="${n.x - 95}" y="${n.y - 15}" width="190" height="30" rx="4" fill="#0d1118" stroke="${c}" stroke-opacity=".7"/><text x="${n.x}" y="${n.y - 2}" text-anchor="middle" fill="#e8e8e8" font-size="11">${esc(trunc(n.name, 26))}</text><text x="${n.x}" y="${n.y + 10}" text-anchor="middle" fill="${c}" font-size="9">${esc([n.sym, n.tag].filter(Boolean).join(' · '))}</text></g>`;
+  };
+  const edge = n => { const sw = Math.min(5, 0.8 + Math.log2(1 + (n.w || 1))); const x1 = n.kind === 'suppliers' ? n.x + 95 : n.kind === 'customers' ? n.x - 95 : n.x, y1 = n.kind === 'competitors' ? n.y - 15 : n.y; return `<path d="M${x1},${y1} C${(x1 + cx) / 2},${y1} ${(x1 + cx) / 2},${cy} ${cx},${cy}" fill="none" stroke="${REL[n.kind].c}" stroke-opacity=".45" stroke-width="${sw}"${n.kind === 'competitors' ? ' stroke-dasharray="4 4"' : ''}/>`; };
+  const all = [...left, ...right, ...bottom];
+  return `<div class="box" style="padding:6px"><svg class="net" viewBox="0 0 ${W} ${H}" role="img" aria-label="Supply chain map">
+    <text x="150" y="12" text-anchor="middle" fill="${REL.suppliers.c}" font-size="11" font-weight="700">SUPPLIERS · ${esc(REL.suppliers.sub(co))}</text>
+    <text x="850" y="12" text-anchor="middle" fill="${REL.customers.c}" font-size="11" font-weight="700">CUSTOMERS · ${esc(REL.customers.sub(co))}</text>
+    ${bottom.length ? `<text x="${cx}" y="${H - 2}" text-anchor="middle" fill="${REL.competitors.c}" font-size="10" font-weight="700">COMPETITORS</text>` : ''}
+    ${all.map(edge).join('')}
+    <g><rect x="${cx - 110}" y="${cy - 26}" width="220" height="52" rx="6" fill="#1a1206" stroke="#ffa028" stroke-width="2"/><text x="${cx}" y="${cy - 5}" text-anchor="middle" fill="#ffa028" font-size="14" font-weight="700">${esc(trunc(d.name || co, 28))}</text><text x="${cx}" y="${cy + 13}" text-anchor="middle" fill="#cfcfcf" font-size="10">${esc(disp(y))}</text></g>
+    ${all.map(node).join('')}
+    ${!all.length ? `<text x="${cx}" y="${cy + 60}" text-anchor="middle" fill="#8a93a3" font-size="12">No filings by other companies name ${esc(co)} as a customer, supplier or competitor.</text>` : ''}
+  </svg></div>`;
+}
+function splcTable(p, d, kind, y, n) {
+  const rows = d[kind].slice(0, n), co = d.names?.[0] || nameOf(y);
+  if (!rows.length) return `<div class="dim">No filings in the last two years name ${esc(co)} this way.</div>`;
+  return `<div class="dim" style="margin-bottom:4px">${esc(REL[kind].how(co))}</div><table><thead><tr><th class="n">#</th><th class="l">Company</th><th class="l">Ticker</th><th>Last</th><th>%Chg</th><th title="Filings that mention the relationship">Filings</th><th class="l">Latest</th><th></th></tr></thead><tbody>` +
+    rows.map(r => {
+      const s = r.sym ? ySym(r.sym) : null;
+      if (s) p.actions.push(`${s} SPLC`);
+      return `<tr class="${s ? 'clk' : ''}"${s ? ` data-cmd="${esc(s)} SPLC"` : ''}><td class="n">${s ? p.actions.length + ')' : ''}</td><td class="l amb">${esc(r.name)}</td><td class="l">${s ? tkChip(s) : '<span class="dim">private / no ticker</span>'}</td><td>${s ? L(s, 'price') : ''}</td><td>${s ? L(s, 'pct') : ''}</td><td>${r.filings}</td><td class="l dim">${esc(r.form || '')} ${esc(r.last)}</td><td>${r.url ? `<button class="tab" data-why="${esc(r.url)}" data-kind="${kind}" title="Show the sentences that name ${esc(co)}">WHY</button>` : ''}</td></tr><tr class="why" hidden><td></td><td colspan="7"></td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+function splcDisclosed(d, full) {
+  const f = d.filing, rows = full ? d.disclosed : d.disclosed.filter(r => r.side !== 'other');
+  const side = { customer: '<span class="up">Customer</span>', supplier: '<span class="blu">Supplier</span>', other: '<span class="dim">Other</span>' };
+  let h = rows.length ? `<table><thead><tr><th class="l">Counterparty</th><th class="l">Relationship</th><th>Share</th><th class="l">Of</th><th class="l">Concentration type</th><th class="l">As of</th></tr></thead><tbody>${rows.map(r => `<tr><td class="l ${r.anon ? 'dim' : 'amb'}">${esc(r.who)}</td><td class="l">${side[r.side]}</td><td>${pf(r.pct)}</td><td class="l">${esc(r.benchmark)}</td><td class="l dim">${esc(r.type)}</td><td class="l dim">${esc(r.end)}</td></tr>`).join('')}</tbody></table>`
+    : `<div class="dim">${f ? `No customer or supplier concentration is tagged in the ${esc(f.form)}. Companies only have to disclose customers above 10% of revenue.` : esc(d.filingErr || 'No annual report data.')}</div>`;
+  const cr = d.customerRevenue;
+  if (cr?.rows?.length) h += `<div class="h" style="margin:10px 0 4px">REVENUE FROM MAJOR CUSTOMERS</div><table><thead><tr><th class="l">Customer</th>${cr.ends.map(e => `<th>${fyOf(e)}</th>`).join('')}<th>% of revenue</th></tr></thead><tbody>${cr.rows.map(r => `<tr><td class="l amb">${esc(r.name)}</td>${r.rev.map(v => `<td>${money(v)}</td>`).join('')}<td>${ok(r.rev[0]) && cr.total[0] ? pf(r.rev[0] / cr.total[0]) : '—'}</td></tr>`).join('')}</tbody></table>`;
+  return box(`Self-reported in ${f ? esc(f.form) + ' · FY ended ' + esc(f.period) : 'annual report'}`, h + (full && d.disclosed.length ? '<div class="dim" style="margin-top:6px">Many companies name their largest customers only as “Customer A”, “Customer B”… Credit and receivable concentration show who owes the company most.</div>' : ''));
+}
+FN.SPLC = {
+  d: 'Supply chain: customers, suppliers & competitors (SEC filings)', cat: 'sec', sec: true,
+  r(p, y, arg) {
+    p.syms = [y];
+    const tab = SPLC_TABS.find(t => t[0] === arg)?.[0] || 'map';
+    return `<div class="bar">${SPLC_TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-go="SPLC|${k}">${l}</button>`).join('')}<span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}</div>
+      <div class="pad res"><div class="empty"><span class="spin"></span> Reading ${esc(disp(y))}'s annual report and searching other companies' SEC filings that name it… (first load takes ~10s)</div></div>`;
+  },
+  m(p, el, y, arg) {
+    const tab = SPLC_TABS.find(t => t[0] === arg)?.[0] || 'map';
+    getSplc(y).then(d => {
+      if (!p.alive(el)) return;
+      const co = d.names?.[0] || nameOf(y);
+      subscribe(p, [...d.customers, ...d.suppliers, ...d.competitors].map(x => x.sym && ySym(x.sym)).filter(Boolean).slice(0, 120));
+      p.actions = [];
+      const cnt = k => d[k].length;
+      let h = `<div class="dim" style="margin-bottom:8px;white-space:normal">${d.filing ? `Self-reported: ${esc(d.name)}'s <a class="blu" href="${esc(d.filing.doc)}" target="_blank" rel="noopener noreferrer">${esc(d.filing.form)}</a> filed ${esc(d.filing.filed)}. ` : d.filingErr ? `<span class="yel">${esc(d.filingErr)}.</span> ` : ''}Relationships: SEC EDGAR full-text search of 10-K, 10-Q, 20-F and S-1 filings from the last two years that mention “${esc(d.names.join('” or “'))}” — <span class="up">${cnt('customers')} customers</span>, <span class="blu">${cnt('suppliers')} suppliers</span>, <span style="color:${REL.competitors.c}">${cnt('competitors')} competitors</span>.${d.errs?.length ? ` <span class="yel">(${esc(d.errs[0])})</span>` : ''}</div>`;
+      if (tab === 'map') h += splcMap(d, y) + `<div class="cols wide" style="margin-top:10px">${['customers', 'suppliers', 'competitors'].map(k => box(`${REL[k].t} — ${esc(REL[k].sub(co))}`, splcTable(p, d, k, y, 10))).join('')}${splcDisclosed(d, false)}</div>`;
+      else if (tab === 'disclosed') h += splcDisclosed(d, true);
+      else h += box(`${REL[tab].t} — ${esc(REL[tab].sub(co))}`, splcTable(p, d, tab, y, 40));
+      $('.res', el).innerHTML = h + '<div class="dim" style="margin-top:8px">Click a company to trace its own supply chain; WHY shows the sentences in its filing. Filings count = filings that use the phrases; one mention can be a partnership rather than a sale.</div>';
+      $$('[data-why]', el).forEach(b => b.onclick = e => {
+        e.stopPropagation();
+        const tr = b.closest('tr').nextElementSibling, td = tr.lastElementChild;
+        if (!tr.hidden) { tr.hidden = true; return; }
+        tr.hidden = false; td.innerHTML = '<span class="spin"></span>';
+        cachedApi(`why:${b.dataset.kind}:${b.dataset.why}`, 86400e3, `splcwhy?symbol=${encodeURIComponent(y)}&kind=${b.dataset.kind}&url=${encodeURIComponent(b.dataset.why)}`).then(w => {
+          const mark = (t, ph) => esc(t).replace(new RegExp(reEsc(esc(ph)), 'ig'), m => `<mark>${m}</mark>`);
+          td.innerHTML = (w.hits.length ? w.hits.map(x => `<div class="quote">${mark(x.text, x.phrase)}</div>`).join('') : '<span class="dim">The wording is in an exhibit or table of this filing.</span>') + ` <a class="blu" href="${esc(b.dataset.why)}" target="_blank" rel="noopener noreferrer">Open filing ↗</a>`;
+        }).catch(err => { td.innerHTML = `<span class="dn">${esc(err.message)}</span>`; });
+      });
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---- SEG / PGEO: revenue breakdowns
+FN.SEG = {
+  d: 'Revenue by segment, product, geography & major customer (10-K XBRL)', cat: 'sec', sec: true,
+  r(p, y) { p.syms = [y]; return `<div class="bar"><span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}</div><div class="pad res"><div class="empty spin"></div></div>`; },
+  m(p, el, y, arg) {
+    getSeg(y).then(d => {
+      if (!p.alive(el)) return;
+      const gs = arg ? [...d.groups.filter(g => g.kind === arg), ...d.groups.filter(g => g.kind !== arg)] : d.groups;
+      let h = `<div class="dim" style="margin-bottom:8px">From ${esc(d.name)}'s <a class="blu" href="${esc(d.doc)}" target="_blank" rel="noopener noreferrer">${esc(d.form)}</a> filed ${esc(d.filed)} (fiscal year ended ${esc(d.period)}), as tagged in its XBRL financial data.</div>`;
+      if (!gs.length) h += `<div class="empty">${esc(d.note || 'This annual report does not tag revenue by segment or region.')}</div>`;
+      h += '<div class="cols wide">' + gs.map(g => {
+        const tot = g.total[0] || g.rows.reduce((a, r) => a + (r.rev[0] || 0), 0);
+        const hasOp = g.rows.some(r => ok(r.op[0]));
+        const mix = `<div class="distbar">${g.rows.filter(r => r.rev[0] > 0).map((r, i) => `<div style="flex:${r.rev[0]};background:${COLORS[i % COLORS.length]}" title="${esc(r.name)}: ${pf(r.rev[0] / tot)}"></div>`).join('')}</div>`;
+        const t = `<table><thead><tr><th class="l">${esc(g.label)}</th>${g.ends.map(e => `<th>${fyOf(e)}</th>`).join('')}<th>Mix</th><th>YoY</th>${hasOp ? '<th>Op. income</th><th>Margin</th>' : ''}</tr></thead><tbody>` +
+          g.rows.map((r, i) => `<tr><td class="l"><span style="color:${COLORS[i % COLORS.length]}">■</span> ${esc(r.name)}</td>${r.rev.map(v => `<td>${money(v)}</td>`).join('')}<td>${ok(r.rev[0]) && tot ? pf(r.rev[0] / tot) : '—'}</td><td class="${cls(r.rev[0] - r.rev[1])}">${ok(r.rev[0]) && r.rev[1] ? pc((r.rev[0] / r.rev[1] - 1) * 100, 1) : '—'}</td>${hasOp ? `<td>${money(r.op[0])}</td><td>${ok(r.op[0]) && r.rev[0] ? pf(r.op[0] / r.rev[0]) : '—'}</td>` : ''}</tr>`).join('') +
+          (g.total.some(ok) ? `<tr class="agg"><td class="l">Total revenue (consolidated)</td>${g.total.map(v => `<td>${money(v)}</td>`).join('')}<td>100%</td><td>${ok(g.total[0]) && g.total[1] ? pc((g.total[0] / g.total[1] - 1) * 100, 1) : '—'}</td>${hasOp ? '<td></td><td></td>' : ''}</tr>` : '') + '</tbody></table>';
+        return box(esc(g.label), mix + t);
+      }).join('') + '</div><div class="dim" style="margin-top:8px">Segment totals can differ from consolidated revenue because of intersegment eliminations and items companies report outside their segments.</div>';
+      $('.res', el).innerHTML = h;
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+FN.PGEO = { d: 'Revenue by geography (10-K XBRL)', cat: 'sec', sec: true, r: (p, y) => FN.SEG.r(p, y), m: (p, el, y) => FN.SEG.m(p, el, y, 'geo') };
+
+// ---- DCF model (shared by DCF and BRC)
+function dcfCalc({ fcf, g1, g2, tg, wacc, cash = 0, debt = 0, shares }) {
+  if (!(fcf > 0) || !(shares > 0) || !(wacc > tg)) return null;
+  let f = fcf, pv = 0;
+  const flows = [];
+  for (let t = 1; t <= 10; t++) { f *= 1 + (t <= 5 ? g1 : g2); const d = f / (1 + wacc) ** t; pv += d; flows.push({ t, f, d }); }
+  const tv = f * (1 + tg) / (wacc - tg), pvTv = tv / (1 + wacc) ** 10, ev = pv + pvTv, eq = ev + cash - debt;
+  return { flows, tv, pvTv, ev, eq, ps: eq / shares, tvShare: pvTv / ev };
+}
+function dcfDefaults(d, rf) {
+  const est = Object.fromEntries((d.estimates || []).map(e => [e.period, e]));
+  const g = [est['0y']?.revG, est['+1y']?.revG, d.revG].filter(v => ok(v));
+  const g1 = Math.max(-0.05, Math.min(0.35, g.length ? g.slice(0, 2).reduce((a, b) => a + b, 0) / Math.min(2, g.length) : 0.05));
+  const beta = ok(d.beta) && d.beta > 0 ? Math.max(0.6, Math.min(2.2, d.beta)) : 1;
+  const rfr = ok(rf) ? rf / 100 : 0.043, erp = 0.055;
+  return { fcf: d.fcf, g1, g2: Math.max(0.02, g1 / 2), tg: 0.025, rf: rfr, beta, erp, wacc: Math.max(0.06, Math.min(0.14, rfr + beta * erp)), cash: d.cash || 0, debt: d.debt || 0, shares: d.shares };
+}
+
+// ---- BRC: equity research
+const BRC_TABS = [['note', 'RESEARCH NOTE'], ['reports', 'REPORTS & EVENTS'], ['actions', 'ANALYST ACTIONS'], ['est', 'ESTIMATES'], ['tech', 'TECHNICALS & ESG']];
+function pctRank(self, vals, higherBetter) {
+  const v = vals.filter(ok);
+  if (!ok(self) || v.length < 3) return null;
+  const worse = v.filter(x => higherBetter ? x < self : x > self).length, same = v.filter(x => x === self).length - 1;
+  return Math.round(100 * (worse + Math.max(0, same) / 2) / (v.length - 1));
+}
+function researchModel(d, peers, rf) {
+  const all = [d, ...peers.filter(r => !r.err && r.sym !== d.sym)];
+  const col = k => all.map(r => r[k]);
+  const pos = k => all.map(r => r[k] > 0 ? r[k] : null);
+  const avg = a => { const v = a.filter(ok); return v.length ? Math.round(v.reduce((x, y) => x + y, 0) / v.length) : null; };
+  const est = Object.fromEntries((d.estimates || []).map(e => [e.period, e]));
+  const rev = est['+1y'] ? (est['+1y'].up30 || 0) - (est['+1y'].down30 || 0) : null;
+  const upside = ok(d.rating?.target?.mean) && d.price ? d.rating.target.mean / d.price - 1 : null;
+  const scores = [
+    ['Value', avg([pctRank(d.fpe > 0 ? d.fpe : null, pos('fpe'), false), pctRank(d.evEbitda > 0 ? d.evEbitda : null, pos('evEbitda'), false), pctRank(d.ps, col('ps'), false)]), 'forward P/E, EV/EBITDA and P/S vs peers (cheaper = higher)'],
+    ['Growth', avg([pctRank(d.revG, col('revG'), true), pctRank(d.epsG, col('epsG'), true)]), 'revenue and earnings growth vs peers'],
+    ['Quality', avg([pctRank(d.gm, col('gm'), true), pctRank(d.om, col('om'), true), pctRank(d.roe, col('roe'), true)]), 'gross & operating margin, ROE vs peers'],
+    ['Momentum', pctRank(d.w52, col('w52'), true), '52-week price change vs peers'],
+    ['Street', avg([pctRank(d.rec, col('rec'), false), ok(upside) ? Math.max(0, Math.min(100, Math.round(50 + upside * 200))) : null, ok(rev) ? Math.max(0, Math.min(100, 50 + rev * 5)) : null]), 'consensus rating, upside to target, EPS revisions'],
+  ];
+  const comp = avg(scores.map(s => s[1]));
+  const call = comp == null ? null : comp >= 60 ? 'OVERWEIGHT' : comp <= 40 ? 'UNDERWEIGHT' : 'NEUTRAL';
+  const dflt = dcfDefaults(d, rf), base = dcfCalc(dflt);
+  const dcf = base ? { base: base.ps, bear: dcfCalc({ ...dflt, wacc: dflt.wacc + 0.01, g1: dflt.g1 - 0.05, g2: Math.max(0.01, dflt.g2 - 0.03) })?.ps, bull: dcfCalc({ ...dflt, wacc: dflt.wacc - 0.01, g1: dflt.g1 + 0.05, g2: dflt.g2 + 0.02 })?.ps, p: dflt } : null;
+  const peerOnly = all.slice(1);
+  const fwdEps = d.fpe > 0 && d.price ? d.price / d.fpe : null;
+  const pe = peerOnly.map(r => r.fpe).filter(v => v > 0 && v < 150);
+  const ev = peerOnly.map(r => r.evEbitda).filter(v => v > 0 && v < 150);
+  const evPx = m => d.ebitda > 0 && d.shares ? (d.ebitda * m - (d.debt || 0) + (d.cash || 0)) / d.shares : null;
+  const field = [
+    ['52-week range', Q[d.sym]?.l52, Q[d.sym]?.h52, null, '#5b6b82'],
+    ['Analyst targets', d.rating?.target?.low, d.rating?.target?.high, d.rating?.target?.mean, '#ffa028'],
+    fwdEps && pe.length >= 2 && ['Peer fwd P/E', fwdEps * Math.min(...pe), fwdEps * Math.max(...pe), fwdEps * median(pe), '#4aa8ff'],
+    evPx(1) && ev.length >= 2 && ['Peer EV/EBITDA', evPx(Math.min(...ev)), evPx(Math.max(...ev)), evPx(median(ev)), '#b58bff'],
+    dcf && ok(dcf.bear) && ['DCF (bear–bull)', Math.min(dcf.bear, dcf.bull), Math.max(dcf.bear, dcf.bull), dcf.base, '#21d07a'],
+  ].filter(r => r && ok(r[1]) && ok(r[2]) && r[2] > 0);
+  return { scores, comp, call, dcf, field, upside, rev, peersN: peerOnly.length, medFpe: median(pe), medEv: median(ev), medGm: median(peerOnly.map(r => r.gm)), medRevG: median(peerOnly.map(r => r.revG)) };
+}
+function footballField(field, px) {
+  if (!field.length) return '<div class="dim">Not enough data for a valuation range.</div>';
+  const lo = Math.min(...field.map(r => r[1]), px || Infinity) * 0.92, hi = Math.max(...field.map(r => r[2]), px || 0) * 1.05;
+  const x = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
+  return `<div class="ff">${field.map(([n, a, b, m, c]) => `<div class="row"><span class="dim">${n}</span><div class="trk"><div class="rng" style="left:${x(a)};width:calc(${x(b)} - ${x(a)});background:${c}"></div>${ok(m) ? `<div class="mk" style="left:${x(m)}" title="${nf(m, 2)}"></div>` : ''}${ok(px) ? `<div class="px" style="left:${x(px)}"></div>` : ''}</div><span>${nf(a, 2)} – ${nf(b, 2)}</span></div>`).join('')}</div>
+    <div class="dim" style="margin-top:4px">Bars: low–high implied value per share; white tick = midpoint / median; dashed amber line = last price ${ok(px) ? nf(px, 2) : ''}.</div>`;
+}
+function researchBullets(d, m, extra) {
+  const S = [], R = [], co = d.name || d.sym, rt = d.rating || {}, t = rt.target || {}, tr = (d.trend || [])[0] || {};
+  const n = (tr.strongBuy || 0) + (tr.buy || 0) + (tr.hold || 0) + (tr.sell || 0) + (tr.strongSell || 0);
+  if (n) S.push(`<b>Street view:</b> ${n} analysts — ${(tr.strongBuy || 0) + (tr.buy || 0)} Buy, ${tr.hold || 0} Hold, ${(tr.sell || 0) + (tr.strongSell || 0)} Sell${ok(rt.score) ? ` (mean ${nf(rt.score, 2)} on 1 = Strong Buy … 5 = Sell)` : ''}. ${ok(t.mean) ? `Mean 12-month target ${nf(t.mean, 2)} implies <span class="${cls(m.upside)}">${pc(m.upside * 100, 1)}</span> from the last price (range ${nf(t.low, 2)} – ${nf(t.high, 2)}).` : ''}`);
+  const recent = (d.actions || []).filter(a => a.t > Date.now() / 1000 - 90 * 86400);
+  if (recent.length) {
+    const up = recent.filter(a => a.action === 'up').length, dn = recent.filter(a => a.action === 'down').length, raised = recent.filter(a => /raise/i.test(a.ptAction) || (a.pt && a.prior && a.pt > a.prior)).length, cut = recent.filter(a => /lower/i.test(a.ptAction) || (a.pt && a.prior && a.pt < a.prior)).length;
+    S.push(`<b>Analyst momentum (90 days):</b> ${recent.length} rating actions — ${up} upgrade${up === 1 ? '' : 's'}, ${dn} downgrade${dn === 1 ? '' : 's'}; ${raised} price-target increase${raised === 1 ? '' : 's'} vs ${cut} cut${cut === 1 ? '' : 's'}. Latest: ${esc(recent[0].firm)} ${esc(recent[0].to)}${recent[0].pt ? ` (PT ${nf(recent[0].pt, 0)})` : ''}.`);
+  }
+  const est = Object.fromEntries((d.estimates || []).map(e => [e.period, e]));
+  if (est['0y'] || est['+1y']) S.push(`<b>Growth outlook:</b> consensus expects revenue ${est['0y'] ? pc(est['0y'].revG * 100, 1) : '—'} this fiscal year and ${est['+1y'] ? pc(est['+1y'].revG * 100, 1) : '—'} next; EPS ${est['0y'] ? pc(est['0y'].growth * 100, 1) : '—'} / ${est['+1y'] ? pc(est['+1y'].growth * 100, 1) : '—'}.${ok(m.rev) ? ` Next-year EPS revisions in the last 30 days: ${est['+1y'].up30 || 0} up, ${est['+1y'].down30 || 0} down.` : ''}`);
+  if (ok(d.fpe) && ok(m.medFpe)) { const prem = d.fpe / m.medFpe - 1; S.push(`<b>Valuation:</b> ${xf(d.pe)} trailing and ${xf(d.fpe)} forward earnings, a ${Math.abs(prem * 100).toFixed(0)}% ${prem >= 0 ? 'premium' : 'discount'} to the peer median of ${xf(m.medFpe)}${ok(d.evEbitda) && ok(m.medEv) ? `; EV/EBITDA ${xf(d.evEbitda)} vs ${xf(m.medEv)}` : ''}.${m.dcf ? ` A 10-year DCF (WACC ${pf(m.dcf.p.wacc)}, ${pf(m.dcf.p.g1)} growth fading to ${pf(m.dcf.p.tg)}) gives ${nf(m.dcf.base, 2)} per share.` : ''}`); }
+  if (ok(d.gm) || ok(d.om)) S.push(`<b>Profitability:</b> gross margin ${pf(d.gm)}, operating margin ${pf(d.om)}, net margin ${pf(d.nm)}, ROE ${pf(d.roe)}${ok(m.medGm) ? ` (peer median gross margin ${pf(m.medGm)})` : ''}.`);
+  const ins = d.insights;
+  if (ins?.rec?.rating) S.push(`<b>Independent research:</b> ${esc(ins.rec.provider)} rates it <b>${esc(ins.rec.rating)}</b>${ok(ins.rec.target) ? ` with a ${nf(ins.rec.target, 2)} target` : ''}.${ins.valuation ? ` ${esc(ins.valuation.provider)} sees it as ${esc(ins.valuation.desc.toLowerCase())}${ins.valuation.discount ? ` (${esc(ins.valuation.discount)})` : ''}.` : ''}`);
+  if (ins?.tech?.short) S.push(`<b>Technicals${ins.tech.provider ? ` (${esc(ins.tech.provider)})` : ''}:</b> short term ${esc(ins.tech.short.dir || '—')}, intermediate ${esc(ins.tech.mid?.dir || '—')}, long term ${esc(ins.tech.long?.dir || '—')}${ok(ins.tech.support) ? `; support ${nf(ins.tech.support, 2)}, resistance ${nf(ins.tech.resistance, 2)}` : ''}.`);
+  const h = extra.holders, np = h?.netSharePurchaseActivity, mh = h?.majorHoldersBreakdown;
+  if (mh) S.push(`<b>Ownership:</b> institutions hold ${pf(rv(mh.institutionsPercentHeld))}, insiders ${pf(rv(mh.insidersPercentHeld))}${np ? `; insiders made ${rv(np.buyInfoCount) ?? 0} purchases and ${rv(np.sellInfoCount) ?? 0} sales in the last 6 months (net ${big(rv(np.netInfoShares))} shares)` : ''}.`);
+  const ape = extra.wsb?.ape?.find(a => a.sym === d.sym);
+  if (extra.wsb) S.push(`<b>Retail chatter:</b> ${ape ? `#${ape.rank} on r/wallstreetbets in the last 24h (${ape.mentions} mentions${ape.mentions24 ? `, ${ape.mentions24} the day before` : ''})` : 'not among the 50 most-mentioned tickers on r/wallstreetbets in the last 24h'}.`);
+  if (ok(d.fpe) && ok(m.medFpe) && d.fpe > m.medFpe * 1.3) R.push('Valuation premium to peers leaves less room for disappointment.');
+  if (ok(d.beta) && d.beta > 1.4) R.push(`High beta (${nf(d.beta, 2)}): shares tend to move more than the market.`);
+  if (ok(d.de) && d.de > 150) R.push(`Leverage: debt/equity of ${nf(d.de, 0)}%.`);
+  if (ok(m.rev) && m.rev < 0) R.push('Analysts have been cutting next-year EPS estimates.');
+  if (ok(d.revG) && d.revG < 0) R.push(`Revenue is shrinking (${pf(d.revG)} year on year).`);
+  const top = extra.splc?.disclosed?.filter(r => r.side === 'customer' && /revenue/.test(r.benchmark)).sort((a, b) => b.pct - a.pct)[0];
+  if (top) R.push(`Customer concentration: ${esc(top.who)} was ${pf(top.pct)} of revenue (FY ${esc(top.end.slice(0, 4))}).`);
+  if (ok(m.upside) && m.upside < 0) R.push('Shares trade above the average analyst target.');
+  const sh = Q[d.sym]; if (sh && ok(sh.ma200) && sh.price < sh.ma200) R.push('Price is below its 200-day moving average.');
+  if (d.esg?.controversy >= 3) R.push(`ESG controversy level ${d.esg.controversy} of 5 (Sustainalytics).`);
+  return { S, R: R.length ? R : ['No major red flags in the data screens; see the company’s 10-K risk factors.'] };
+}
+FN.BRC = {
+  d: 'Equity research: rating, targets, research note, reports, valuation', cat: 'sec', sec: true,
+  r(p, y, arg) {
+    p.syms = [y, '^TNX'];
+    const tab = BRC_TABS.find(t => t[0] === arg)?.[0] || 'note';
+    return `<div class="bar">${BRC_TABS.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" data-go="BRC|${k}">${l}</button>`).join('')}<span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}</div><div class="pad res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const tab = BRC_TABS.find(t => t[0] === arg)?.[0] || 'note';
+    getRes(y).then(async d => {
+      if (!p.alive(el)) return;
+      d.price = Q[y]?.price ?? d.price;
+      const out = h => p.alive(el) && ($('.res', el).innerHTML = h + '<div class="dim" style="margin-top:8px">Sources: Yahoo Finance (consensus, estimates, analyst actions, Argus / Morningstar / Trading Central research, Sustainalytics ESG), SEC EDGAR, r/wallstreetbets via ApeWisdom. Model scores and the DCF are computed by this terminal from that data — not investment advice.</div>');
+      if (tab === 'note') {
+        const [cmp, holders, wsb, splc] = await Promise.all([d.peers.length ? getComps(d.peers.slice(0, 8)).catch(() => ({ rows: [] })) : { rows: [] }, getHolders(y).catch(() => null), cachedApi('wsb', 120e3, 'wsb').catch(() => null), isEquity(y) ? getSplc(y).catch(() => null) : null]);
+        const peers = cmp.rows.filter(r => !r.err);
+        const m = researchModel(d, peers, Q['^TNX']?.price);
+        const b = researchBullets(d, m, { holders, wsb, splc });
+        const call = m.call ? `<span class="rate ${m.call === 'OVERWEIGHT' ? 'b' : m.call === 'UNDERWEIGHT' ? 's' : 'h'}">${m.call}</span>` : '—';
+        const ins = d.insights || {};
+        out(`<div class="hero"><span class="h" style="font-size:15px">${esc(d.name)}</span><span class="dim">${esc(disp(y))} · ${esc(d.profile.sector)} · ${esc(d.profile.industry)}</span>
+            <span class="big">${L(y, 'price')}</span>${L(y, 'pct')}<span>Street ${rateBadge(d.rating.key)}</span><span>Target <b>${ok(d.rating.target.mean) ? nf(d.rating.target.mean, 2) : '—'}</b> <span class="${cls(m.upside)}">${ok(m.upside) ? pc(m.upside * 100, 1) : ''}</span></span><span>Terminal model ${call}</span></div>
+          <div class="cols">
+            ${box('Investment summary', `<div class="note"><ul>${b.S.map(s => `<li>${s}</li>`).join('')}</ul></div>`, 'span2')}
+            ${box('Terminal model score', `${m.scores.map(([k, v, why]) => `<div class="kv" style="grid-template-columns:80px 1fr 34px;align-items:center;margin-bottom:4px" title="${esc(why)}"><span class="k">${k}</span><span class="sbar"><i style="width:${v ?? 0}%;background:${v == null ? '#333' : v >= 60 ? 'var(--up)' : v <= 40 ? 'var(--dn)' : 'var(--yel)'}"></i></span><span class="v">${v ?? '—'}</span></div>`).join('')}
+              <div style="margin-top:8px">Composite <b>${m.comp ?? '—'}</b> / 100 → ${call}</div><div class="dim" style="margin-top:4px">Percentile vs ${m.peersN} peers (${esc(peers.map(r => r.sym).join(', ') || 'none')}). ≥60 overweight, ≤40 underweight.</div>`)}
+            ${box('Key risks', `<div class="note"><ul>${b.R.map(s => `<li>${s}</li>`).join('')}</ul></div>`)}
+            ${box('Street consensus', kv([['Rating', rateBadge(d.rating.key)], ['Mean score', ok(d.rating.score) ? nf(d.rating.score, 2) : '—'], ['# Analysts', d.rating.n ?? '—'], ['Target mean / median', `${nf(d.rating.target.mean, 2)} / ${nf(d.rating.target.median, 2)}`], ['Target high / low', `${nf(d.rating.target.high, 2)} / ${nf(d.rating.target.low, 2)}`], ins.rec?.rating && [esc(ins.rec.provider), `${esc(ins.rec.rating)}${ok(ins.rec.target) ? ' · ' + nf(ins.rec.target, 2) : ''}`], ins.valuation && [esc(ins.valuation.provider || 'Valuation'), `${esc(ins.valuation.desc)} ${esc(ins.valuation.discount || '')}`], ['Next earnings', d.earningsDate.length ? new Date(d.earningsDate[0] * 1000).toISOString().slice(0, 10) : '—']]))}
+            ${box('Key metrics', kv([['Market cap', big(d.mcap)], ['EV', big(d.ev)], ['P/E ttm / fwd', `${xf(d.pe)} / ${xf(d.fpe)}`], ['PEG', ok(d.peg) ? nf(d.peg, 2) : '—'], ['EV/EBITDA', xf(d.evEbitda)], ['EV/Sales', xf(d.evRev)], ['Revenue growth', pf(d.revG)], ['Gross / op. margin', `${pf(d.gm)} / ${pf(d.om)}`], ['ROE', pf(d.roe)], ['FCF (ttm)', big(d.fcf)], ['Div yield', pf(d.dy, 2)], ['Beta', ok(d.beta) ? nf(d.beta, 2) : '—']]))}
+          </div>
+          <div class="cols" style="margin-top:10px">${box('Valuation range (per share)', footballField(m.field, d.price), 'span2')}</div>
+          ${peers.length ? '<div style="margin-top:10px"></div>' + box('Peer snapshot — RV for the full comp sheet', `<table><thead><tr><th class="l">Ticker</th><th class="l">Name</th><th>Mkt cap</th><th>Fwd P/E</th><th>EV/EBITDA</th><th>Rev growth</th><th>Op. margin</th><th>1Y</th></tr></thead><tbody>${[d, ...peers].map((r, i) => `<tr class="clk ${i ? '' : 'subj'}" data-cmd="${esc(r.sym)} BRC"><td class="l amb">${esc(r.sym)}</td><td class="l">${esc(r.name)}</td><td>${big(r.mcap)}</td><td>${xf(r.fpe)}</td><td>${xf(r.evEbitda)}</td><td>${pf(r.revG)}</td><td>${pf(r.om)}</td><td class="${cls(r.w52)}">${pf(r.w52)}</td></tr>`).join('')}</tbody></table>`) : ''}
+          ${d.profile.summary ? '<div style="margin-top:10px"></div>' + box('Business description', `<div style="white-space:normal;line-height:1.5">${esc(d.profile.summary)}</div>`) : ''}`);
+      } else if (tab === 'reports') {
+        const ins = d.insights || {};
+        out(`${ins.reports?.length ? box('Independent research reports', `<table><thead><tr><th class="l">Date</th><th class="l">Provider</th><th class="l">Report</th><th class="l">Rating</th><th>Target</th></tr></thead><tbody>${ins.reports.map(r => `<tr><td class="l dim">${esc(String(r.date).slice(0, 10))}</td><td class="l amb">${esc(r.provider)}</td><td class="l" style="white-space:normal"><a class="blu" href="https://finance.yahoo.com/research/reports/${encodeURIComponent(r.id)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>${r.summary ? `<div class="dim" style="margin-top:2px">${esc(r.summary.slice(0, 400))}</div>` : ''}</td><td class="l">${r.rating ? rateBadge(r.rating) : ''}</td><td>${ok(r.target) ? nf(r.target, 2) : ''} <span class="dim">${esc(r.targetStatus || '')}</span></td></tr>`).join('')}</tbody></table><div class="dim" style="margin-top:4px">Full reports open on Yahoo Finance (some need a Yahoo subscription).</div>`) : `<div class="dim">${d.insightsErr ? esc(d.insightsErr) : 'No independent research reports listed for this security.'}</div>`}
+          <div class="cols" style="margin-top:10px">${box('Significant developments', ins.sigDevs?.length ? ins.sigDevs.map(s => `<div style="margin-bottom:5px;white-space:normal"><span class="dim">${esc(String(s.date).slice(0, 10))}</span> ${esc(s.headline)}</div>`).join('') : '<span class="dim">None listed.</span>')}
+          ${box('Recent SEC filings (summaries)', ins.filings?.length ? ins.filings.map(f => `<div style="margin-bottom:6px;white-space:normal"><span class="amb">${esc(f.type)}</span> <span class="dim">${f.date ? new Date(f.date).toISOString().slice(0, 10) : ''}</span> ${esc(f.title)}${f.desc ? `<div class="dim">${esc(f.desc)}</div>` : ''}</div>`).join('') : '<span class="dim">None listed — see CF for the filing list.</span>')}</div>`);
+      } else if (tab === 'actions') {
+        const a = d.actions, cnt = k => a.filter(x => x.action === k).length;
+        const pts = a.filter(x => x.pt > 0 && x.t).slice().reverse();
+        out(`<div class="cols">${box('Last 12 months', kv([['Upgrades', `<span class="up">${a.filter(x => x.action === 'up' && x.t > Date.now() / 1000 - 365 * 86400).length}</span>`], ['Downgrades', `<span class="dn">${a.filter(x => x.action === 'down' && x.t > Date.now() / 1000 - 365 * 86400).length}</span>`], ['Initiations', cnt('init')], ['Maintained / reiterated', cnt('main') + cnt('reit')]]))}
+            ${box('Price targets over time', pts.length > 1 ? '<div class="chartwrap" style="height:170px;min-height:150px"><canvas class="chart"></canvas></div>' : '<span class="dim">Not enough price-target history.</span>', 'span2')}</div>
+          ${box('Analyst actions', a.length ? `<table><thead><tr><th class="l">Date</th><th class="l">Firm</th><th class="l">Action</th><th class="l">From</th><th class="l">To</th><th>Target</th><th>Prior</th><th>Δ</th></tr></thead><tbody>${a.map(r => `<tr><td class="l dim">${new Date(r.t * 1000).toISOString().slice(0, 10)}</td><td class="l amb">${esc(r.firm)}</td><td class="l ${r.action === 'up' ? 'up' : r.action === 'down' ? 'dn' : ''}">${esc({ up: 'Upgrade', down: 'Downgrade', main: 'Maintain', init: 'Initiate', reit: 'Reiterate' }[r.action] || r.action)}</td><td class="l dim">${esc(r.from)}</td><td class="l">${esc(r.to)}</td><td>${r.pt ? nf(r.pt, 2) : ''}</td><td class="dim">${r.prior ? nf(r.prior, 2) : ''}</td><td class="${cls(r.pt - r.prior)}">${r.pt && r.prior ? pc((r.pt / r.prior - 1) * 100, 1) : ''}</td></tr>`).join('')}</tbody></table>` : '<span class="dim">No analyst actions on record.</span>')}`);
+        const cv = $('canvas', el);
+        if (cv) mountChart(cv, { x: pts.map(r => new Date(r.t * 1000).toISOString().slice(0, 10)), s: [{ n: 'Price target', d: pts.map(r => r.pt), c: '#ffa028', w: 1.6 }], dots: true, yf: v => nf(v, 0) });
+      } else if (tab === 'est') {
+        const e = d.estimates, lab = { '0q': 'Current qtr', '+1q': 'Next qtr', '0y': 'Current FY', '+1y': 'Next FY', '+5y': 'Next 5Y (p.a.)', '-5y': 'Past 5Y (p.a.)' };
+        out(box('Consensus estimates', `<table><thead><tr><th class="l">Period</th><th class="l">Ends</th><th>EPS est.</th><th>Low</th><th>High</th><th>EPS growth</th><th>Revenue est.</th><th>Rev. growth</th><th># Analysts</th><th>Revisions 30d ↑/↓</th></tr></thead><tbody>${e.map(r => `<tr><td class="l amb">${esc(lab[r.period] || r.period)}</td><td class="l dim">${esc(r.end || '')}</td><td>${ok(r.eps) ? nf(r.eps, 2) : '—'}</td><td class="dim">${ok(r.epsLow) ? nf(r.epsLow, 2) : ''}</td><td class="dim">${ok(r.epsHigh) ? nf(r.epsHigh, 2) : ''}</td><td class="${cls(r.growth)}">${pf(r.growth)}</td><td>${big(r.rev)}</td><td class="${cls(r.revG)}">${pf(r.revG)}</td><td>${r.n ?? ''}</td><td>${ok(r.up30) || ok(r.down30) ? `<span class="up">${r.up30 || 0}</span> / <span class="dn">${r.down30 || 0}</span>` : ''}</td></tr>`).join('')}</tbody></table><div class="dim" style="margin-top:6px">More history and surprises: EE.</div>`));
+      } else {
+        const ins = d.insights || {}, tc = ins.tech || {}, es = d.esg, sn = ins.snapshot;
+        const outl = (n, o) => o ? [n, `<span class="${/bull/i.test(o.dir) ? 'up' : /bear/i.test(o.dir) ? 'dn' : ''}">${esc(o.dir || '—')}</span> <span class="dim">${esc(o.desc || '')}${o.sector ? ' · sector ' + esc(o.sector) : ''}</span>`] : null;
+        out(`<div class="cols">${box(`Technical outlook${tc.provider ? ' — ' + esc(tc.provider) : ''}`, tc.short || tc.mid || tc.long ? kv([outl('Short term (2–6 wks)', tc.short), outl('Intermediate (6 wks–9 mo)', tc.mid), outl('Long term (9 mo+)', tc.long), ok(tc.support) && ['Support', nf(tc.support, 2)], ok(tc.resistance) && ['Resistance', nf(tc.resistance, 2)], ok(tc.stop) && ['Stop loss', nf(tc.stop, 2)]]) : '<span class="dim">No technical outlook available.</span>')}
+          ${box('ESG risk — Sustainalytics', es ? kv([['Total ESG risk', `${nf(es.total, 1)} <span class="dim">(lower is better)</span>`], ['Environment', nf(es.env, 1)], ['Social', nf(es.soc, 1)], ['Governance', nf(es.gov, 1)], ['Percentile in peer group', ok(es.pct) ? nf(es.pct, 0) : '—'], ['Peer group', esc(es.peer)], ['Highest controversy', es.controversy ?? '—'], ['Rating year', es.year ?? '—']]) : '<span class="dim">No ESG scores for this security.</span>')}
+          ${sn ? box('Company snapshot vs sector', `<table><thead><tr><th class="l">Factor</th><th>Company</th><th>Sector</th></tr></thead><tbody>${Object.entries(sn.company).filter(([, v]) => ok(v)).map(([k, v]) => `<tr><td class="l">${esc(k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()))}</td><td>${nf(v * 100, 0)}</td><td class="dim">${ok(sn.sectorAvg[k]) ? nf(sn.sectorAvg[k] * 100, 0) : ''}</td></tr>`).join('')}</tbody></table><div class="dim" style="margin-top:4px">0–100 scores from Yahoo Finance's company snapshot${sn.sector ? ' (' + esc(sn.sector) + ')' : ''}.</div>`) : ''}</div>`);
+      }
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---- RV: relative valuation / comp sheet
+const RV_COLS = [['mcap', 'Mkt cap', big], ['pe', 'P/E', xf, 0], ['fpe', 'Fwd P/E', xf, 0], ['peg', 'PEG', v => ok(v) && v > 0 ? nf(v, 2) : '—', 0], ['ps', 'P/S', xf, 0], ['evRev', 'EV/Sales', xf, 0], ['evEbitda', 'EV/EBITDA', xf, 0], ['pb', 'P/B', xf, 0],
+  ['gm', 'Gross mgn', pf, 1], ['om', 'Op. mgn', pf, 1], ['roe', 'ROE', pf, 1], ['revG', 'Rev gr.', pf, 1], ['epsG', 'EPS gr.', pf, 1], ['dy', 'Div yld', v => pf(v, 2), 1], ['beta', 'Beta', v => ok(v) ? nf(v, 2) : '—'], ['w52', '1Y chg', pf, 1], ['up', 'To target', pf, 1]];
+const RV_MULT = new Set(['mcap', 'pe', 'fpe', 'peg', 'ps', 'evRev', 'evEbitda', 'pb']); // non-positive multiples are not meaningful
+FN.RV = {
+  d: 'Relative valuation: comparable-company multiples vs peers', cat: 'sec', sec: true,
+  r(p, y, arg) {
+    p.syms = [y];
+    return `<div class="bar"><span class="lbl">Peers</span><input class="inp" id="rvadd" size="10" placeholder="add ticker"><button class="btn" id="rvgo">ADD</button><button class="btn" id="rvreset">RESET</button><span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}</div><div class="pad res"><div class="empty spin"></div></div>`;
+  },
+  m(p, el, y, arg) {
+    const custom = Array.isArray(arg) ? arg : null;
+    let sortK = 'mcap', dir = -1, rows = [];
+    const draw = () => {
+      if (!p.alive(el)) return;
+      const subj = rows.find(r => r.sym === y), others = rows.filter(r => r.sym !== y && !r.err);
+      others.sort((a, b) => ((a[sortK] ?? -Infinity) - (b[sortK] ?? -Infinity)) * dir);
+      const med = Object.fromEntries(RV_COLS.map(([k]) => [k, median(others.map(r => RV_MULT.has(k) ? (r[k] > 0 ? r[k] : null) : r[k]))]));
+      p.actions = rows.filter(r => !r.err).map(r => `${r.sym} BRC`);
+      const row = (r, c) => `<tr class="clk ${c}" data-cmd="${esc(r.sym)} BRC"><td class="l amb">${esc(r.sym)}</td><td class="l name">${esc(r.name || '')}</td><td>${L(r.sym, 'price')}</td><td>${L(r.sym, 'pct')}</td>${RV_COLS.map(([k, , f]) => `<td>${f(r[k])}</td>`).join('')}<td class="l">${rateBadge(r.recKey)}</td></tr>`;
+      const prem = subj ? `<tr class="agg"><td class="l" colspan="4">${esc(y)} vs median</td>${RV_COLS.map(([k, , , t]) => `<td class="${t === 0 ? (subj[k] > med[k] ? 'dn' : 'up') : t === 1 ? cls(subj[k] - med[k]) : ''}">${ok(subj[k]) && ok(med[k]) && med[k] && t === 0 ? pc((subj[k] / med[k] - 1) * 100, 0) : ok(subj[k]) && ok(med[k]) && t === 1 ? sgn((subj[k] - med[k]) * 100, 1) + 'pt' : ''}</td>`).join('')}<td></td></tr>` : '';
+      $('.res', el).innerHTML = `<table class="rv"><thead><tr><th class="l">Ticker</th><th class="l">Name</th><th>Last</th><th>%Chg</th>${RV_COLS.map(([k, l]) => `<th class="sort" data-k="${k}">${l}${k === sortK ? (dir < 0 ? ' ▼' : ' ▲') : ''}</th>`).join('')}<th class="l">Street</th></tr></thead><tbody>
+        ${subj ? row(subj, 'subj') : ''}${others.map(r => row(r, '')).join('')}
+        <tr class="agg"><td class="l" colspan="4">Peer median</td>${RV_COLS.map(([k, , f]) => `<td>${f(med[k])}</td>`).join('')}<td></td></tr>${prem}
+        ${rows.filter(r => r.err).map(r => `<tr><td class="l dim">${esc(r.sym)}</td><td class="l dn" colspan="${RV_COLS.length + 4}">${esc(r.err)}</td></tr>`).join('')}</tbody></table>
+        <div class="dim" style="margin-top:6px">Peers: ${custom ? 'your list' : "Yahoo Finance's similar companies"} — add tickers above. Multiples are trailing unless marked forward; "vs median" shows premium/discount (multiples) or percentage-point gap (margins, growth). Click a row for its research note. Source: Yahoo Finance.</div>`;
+      $$('th.sort', el).forEach(th => th.onclick = () => { const k = th.dataset.k; dir = k === sortK ? -dir : -1; sortK = k; draw(); });
+    };
+    (custom ? Promise.resolve(custom) : getRes(y).then(d => d.peers)).then(peers => {
+      const list = [y, ...peers.filter(s => s !== y)].slice(0, 15);
+      subscribe(p, list);
+      return getComps(list).then(c => {
+        rows = c.rows.map(r => ({ ...r, up: ok(r.tgt) && r.price ? r.tgt / r.price - 1 : null }));
+        const add = () => { const v = $('#rvadd', el).value.trim().toUpperCase(); const s = v && resolve(v.split(/\s+/)); if (!s) return p.msg('Unknown security: ' + v); p.go('RV', y, [...new Set([...list.slice(1), s])], false); };
+        $('#rvgo', el).onclick = add; $('#rvadd', el).onkeydown = e => { if (e.key === 'Enter') { e.stopPropagation(); add(); } };
+        $('#rvreset', el).onclick = () => p.go('RV', y, null, false);
+        draw();
+      });
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---- DCF: interactive discounted cash flow
+const DCF_IN = [['fcf', 'Base free cash flow ($M)', 1e6], ['g1', 'Growth yrs 1–5 (%)', 0.01], ['g2', 'Growth yrs 6–10 (%)', 0.01], ['tg', 'Terminal growth (%)', 0.01], ['rf', 'Risk-free rate (%)', 0.01], ['beta', 'Beta', 1], ['erp', 'Equity risk premium (%)', 0.01], ['wacc', 'Discount rate / WACC (%)', 0.01], ['cash', 'Cash ($M)', 1e6], ['debt', 'Debt ($M)', 1e6], ['shares', 'Shares (M)', 1e6]];
+FN.DCF = {
+  d: 'Discounted cash flow valuation (interactive, from real financials)', cat: 'sec', sec: true,
+  r(p, y) { p.syms = [y, '^TNX']; return `<div class="bar"><span class="lbl">${esc(nameOf(y))}</span> ${L(y, 'price')} ${L(y, 'pct')}<span class="lbl">US 10Y</span> ${L('^TNX', 'price')}</div><div class="pad res dcf"><div class="empty spin"></div></div>`; },
+  m(p, el, y) {
+    Promise.all([getRes(y), getFin(y).catch(() => null), ensureQuote('^TNX').catch(() => null)]).then(([d, f]) => {
+      if (!p.alive(el)) return;
+      const v = dcfDefaults(d, Q['^TNX']?.price);
+      const hist = (f?.annual?.FreeCashFlow || []).filter(x => ok(x.v)).slice(-5);
+      const fmtIn = (k, s) => k === 'beta' ? nf(v[k], 2) : s === 0.01 ? nf(v[k] * 100, 2) : nf(v[k] / s, 0);
+      $('.res', el).innerHTML = `<div class="cols">${box('Assumptions', `<div class="grid">${DCF_IN.map(([k, l, s]) => `<label>${l}<input class="inp num" data-k="${k}" data-s="${s}" value="${fmtIn(k, s).replace(/,/g, '')}"></label>`).join('')}</div>
+          <div class="dim" style="margin-top:6px">Defaults: trailing free cash flow, consensus revenue growth (fading by half after year 5), WACC = risk-free (US 10Y) + beta × ERP. Edit any field; WACC recomputes from its parts unless you set it directly.</div>`, 'span2')}
+          ${box('Valuation', '<div class="outv"></div>')}${box('Free cash flow history', hist.length ? `<table><thead><tr><th class="l">Year</th><th>FCF</th><th>YoY</th></tr></thead><tbody>${hist.map((x, i) => `<tr><td class="l">${esc(x.d.slice(0, 4))}</td><td>${money(x.v)}</td><td class="${cls(i ? x.v - hist[i - 1].v : 0)}">${i && hist[i - 1].v > 0 ? pc((x.v / hist[i - 1].v - 1) * 100, 1) : ''}</td></tr>`).join('')}</tbody></table>${hist.length > 2 && hist[0].v > 0 && hist.at(-1).v > 0 ? `<div class="dim" style="margin-top:4px">CAGR ${pc(((hist.at(-1).v / hist[0].v) ** (1 / (hist.length - 1)) - 1) * 100, 1)}</div>` : ''}` : '<span class="dim">No history.</span>')}</div>
+        <div class="cols wide" style="margin-top:10px">${box('Projected cash flows', '<div class="proj"></div>')}${box('Sensitivity — value per share (WACC × terminal growth)', '<div class="sens"></div>')}</div>`;
+      const calc = () => {
+        const r = dcfCalc(v), px = Q[y]?.price;
+        if (!r) { $('.outv', el).innerHTML = `<div class="dim">${v.fcf > 0 ? 'Discount rate must exceed terminal growth.' : 'Free cash flow is negative, so a cash-flow DCF is not meaningful — try EV/EBITDA in RV.'}</div>`; $('.proj', el).innerHTML = $('.sens', el).innerHTML = ''; return; }
+        const up = px ? r.ps / px - 1 : null;
+        $('.outv', el).innerHTML = kv([['PV of 10y cash flows', money(r.ev - r.pvTv)], ['PV of terminal value', `${money(r.pvTv)} <span class="dim">(${pf(r.tvShare, 0)} of EV)</span>`], ['Enterprise value', money(r.ev)], ['+ Cash − debt', money(v.cash - v.debt)], ['Equity value', money(r.eq)], ['<b>Value per share</b>', `<b class="amb">${nf(r.ps, 2)}</b>`], ['Last price', L(y, 'price')], ['Upside / downside', `<span class="${cls(up)}">${ok(up) ? pc(up * 100, 1) : '—'}</span>`], ['Implied EV / FCF', xf(r.ev / v.fcf)]]);
+        $('.proj', el).innerHTML = `<table><thead><tr><th class="l">Year</th>${r.flows.map(x => `<th>${x.t}</th>`).join('')}</tr></thead><tbody><tr><td class="l">FCF</td>${r.flows.map(x => `<td>${big(x.f)}</td>`).join('')}</tr><tr><td class="l dim">PV</td>${r.flows.map(x => `<td class="dim">${big(x.d)}</td>`).join('')}</tr></tbody></table>`;
+        const ws = [-0.02, -0.01, 0, 0.01, 0.02].map(x => v.wacc + x), gs = [-0.01, -0.005, 0, 0.005, 0.01].map(x => v.tg + x);
+        $('.sens', el).innerHTML = `<table class="sens"><thead><tr><th class="l">WACC \\ g</th>${gs.map(g => `<th>${pf(g)}</th>`).join('')}</tr></thead><tbody>${ws.map(w => `<tr><td class="l amb">${pf(w)}</td>${gs.map(g => { const s = dcfCalc({ ...v, wacc: w, tg: g }); return `<td class="${w === v.wacc && g === v.tg ? 'base' : s && px ? cls(s.ps - px) : ''}">${s ? nf(s.ps, 2) : '—'}</td>`; }).join('')}</tr>`).join('')}</tbody></table><div class="dim" style="margin-top:4px">Green / red: above / below the last price.</div>`;
+      };
+      $$('input[data-k]', el).forEach(inp => inp.oninput = () => {
+        const k = inp.dataset.k, s = +inp.dataset.s, n = parseFloat(inp.value.replace(/,/g, ''));
+        if (!ok(n)) return;
+        v[k] = n * s;
+        if (['rf', 'beta', 'erp'].includes(k)) { v.wacc = v.rf + v.beta * v.erp; $('input[data-k="wacc"]', el).value = nf(v.wacc * 100, 2); }
+        calc();
+      });
+      calc();
+    }).catch(e => p.alive(el) && fail(el, e, '.res'));
+  },
+};
+
+// ---- MGMT: management, pay & governance
+FN.MGMT = {
+  d: 'Management, executive pay, governance risk & insider holders', cat: 'sec', sec: true,
+  r(p, y) { p.syms = [y]; return `<div class="pad res"><div class="empty spin"></div></div>`; },
+  m(p, el, y) {
+    Promise.all([getSummary(y), getHolders(y).catch(() => null)]).then(([s, h]) => {
+      if (!p.alive(el)) return;
+      const ap = s.assetProfile || {}, off = ap.companyOfficers || [];
+      const risk = [['Overall', ap.overallRisk], ['Audit', ap.auditRisk], ['Board', ap.boardRisk], ['Compensation', ap.compensationRisk], ['Shareholder rights', ap.shareHolderRightsRisk]].filter(([, v]) => ok(v));
+      const ih = h?.insiderHolders?.holders || [];
+      $('.res', el).innerHTML = `<div class="cols">${box('Executives', off.length ? `<table><thead><tr><th class="l">Name</th><th class="l">Title</th><th>Age</th><th>Total pay</th><th>Options exercised</th></tr></thead><tbody>${off.map(o => `<tr><td class="l amb">${esc(o.name)}</td><td class="l" style="white-space:normal">${esc(o.title)}</td><td>${o.age ?? ''}</td><td>${money(rv(o.totalPay))}</td><td class="dim">${money(rv(o.exercisedValue))}</td></tr>`).join('')}</tbody></table><div class="dim" style="margin-top:4px">Pay for the latest fiscal year${off[0]?.fiscalYear ? ' (' + off[0].fiscalYear + ')' : ''}, from the proxy statement via Yahoo Finance.</div>` : '<span class="dim">No officer data.</span>', 'span2')}
+        ${box('Governance risk — ISS QualityScore', risk.length ? risk.map(([k, v]) => `<div class="kv" style="grid-template-columns:120px 1fr 26px;align-items:center;margin-bottom:5px"><span class="k">${k}</span><span class="sbar"><i style="width:${v * 10}%;background:${v >= 8 ? 'var(--dn)' : v <= 3 ? 'var(--up)' : 'var(--yel)'}"></i></span><span class="v">${v}</span></div>`).join('') + `<div class="dim">1 = lowest governance risk, 10 = highest${ap.governanceEpochDate ? ` · as of ${new Date(ap.governanceEpochDate * 1000).toISOString().slice(0, 10)}` : ''}.</div>` : '<span class="dim">No governance scores.</span>')}
+        ${box('Company', kv([['Employees', ap.fullTimeEmployees ? nf(ap.fullTimeEmployees, 0) : '—'], ['Headquarters', esc([ap.city, ap.state, ap.country].filter(Boolean).join(', ') || '—')], ['Phone', esc(ap.phone || '—')], ['Website', ap.website ? `<a class="blu" href="${esc(ap.website)}" target="_blank" rel="noopener noreferrer">${esc(ap.website.replace(/^https?:\/\//, ''))}</a>` : '—'], ['Sector', esc(ap.sector || '—')], ['Industry', esc(ap.industry || '—')]]))}</div>
+        ${box('Insider holders', ih.length ? `<table><thead><tr><th class="l">Insider</th><th class="l">Relation</th><th class="l">Latest transaction</th><th class="l">Date</th><th>Shares held (direct)</th></tr></thead><tbody>${ih.map(x => `<tr><td class="l amb">${esc(x.name)}</td><td class="l">${esc(x.relation || '')}</td><td class="l">${esc(x.transactionDescription || '')}</td><td class="l dim">${esc(x.latestTransDate?.fmt || '')}</td><td>${big(rv(x.positionDirect))}</td></tr>`).join('')}</tbody></table><div class="dim" style="margin-top:4px">Form 4 trade-by-trade detail: INSD.</div>` : '<span class="dim">No insider holder data.</span>')}`;
     }).catch(e => p.alive(el) && fail(el, e, '.res'));
   },
 };

@@ -20,9 +20,12 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 | Company profile, valuation, key statistics, analyst ratings & targets | Yahoo Finance quoteSummary |
 | Income statement, balance sheet, cash flow (annual, quarterly, trailing 12 months) | Yahoo Finance fundamentals time series |
 | Earnings & revenue estimates, EPS trend and revisions, earnings history, SEC filings | Yahoo Finance analysis |
+| Equity research: consensus ratings, price targets, analyst upgrades/downgrades, independent research reports (Argus, Morningstar), technical outlook and valuation (Trading Central), ESG risk (Sustainalytics), similar companies | Yahoo Finance quoteSummary and research insights |
+| Supply chain: customers, suppliers and competitors | SEC EDGAR: the company's latest 10-K / 20-F XBRL (customer and supplier concentration it discloses) and full-text search of other companies' 10-K, 10-Q, 20-F and S-1 filings that name it ("sales to …", "purchases from …", "compete with …") |
+| Revenue by segment, product, geography and major customer | SEC EDGAR: XBRL of the latest annual report |
 | US yield curve | U.S. Treasury daily par yield curve |
 | Top news | RSS feeds from Yahoo Finance, CNBC, MarketWatch, WSJ, Bloomberg, FT, Seeking Alpha, Investing.com, Nasdaq, Benzinga, The Economist, CoinDesk, the Federal Reserve, SEC and ECB, plus Google News (which adds Reuters, AP, Barron's and hundreds of other publishers) |
-| Reddit | r/wallstreetbets and other finance subreddits: posts, daily-thread comments and search. Your browser reads Reddit directly when Reddit allows it (with upvote and comment counts); otherwise the server's copy is used, which comes from Reddit's RSS feeds because Reddit's API blocks cloud servers (add a Reddit app key to get counts there too) |
+| Reddit | r/wallstreetbets and other finance subreddits: posts, daily-thread comments and search. Your browser reads Reddit directly when Reddit allows it (with upvote and comment counts); otherwise the server's copy is used. Reddit's API blocks cloud servers, so the server reads Reddit's RSS feeds and takes upvote counts and daily-thread comments from the [Arctic Shift](https://arctic-shift.photon-reddit.com) Reddit archive (or add a Reddit app key) |
 | Live flights (ADS-B) | adsb.lol, falling back to airplanes.live, then OpenSky Network |
 | Aircraft lookup, military & emergency traffic, business jets, cargo hubs | adsb.lol and airplanes.live; flight routes from the adsb.lol route database; photos from planespotters.net |
 | Live ships & tankers (AIS) | aisstream.io (global, free key) or Fintraffic Digitraffic (Baltic, no key) |
@@ -45,7 +48,7 @@ Browsers can't call finance APIs directly because of CORS, so `server.js` serves
 Optional settings unlock extra data. Put them in a `.env` file for local use (see `.env.example`), or add them as Vercel environment variables:
 
 - `AISSTREAM_API_KEY` from [aisstream.io](https://aisstream.io) turns on worldwide ship tracking. Without it, ships are limited to the Baltic Sea.
-- `SEC_USER_AGENT`, e.g. `Your Name you@example.com`. The SEC asks automated clients to include a contact email. When set, insider data also comes straight from EDGAR.
+- `SEC_USER_AGENT`, e.g. `Your Name you@example.com`. The SEC refuses automated requests that don't include a contact email, so set this for `INSD` (Form 4 detail), `SPLC` and `SEG`.
 - `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` from a "script" app at [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps) add upvote and comment counts to the Reddit screens, and score-ranked daily-thread comments.
 - `EIA_API_KEY` from [eia.gov/opendata](https://www.eia.gov/opendata/register.php) turns on the weekly US crude, SPR, Cushing, gasoline and distillate inventories in `OIL`.
 
@@ -93,6 +96,12 @@ N FED                   news search
 | `FA` | Yahoo Finance financials: full income statement, balance sheet and cash flow (annual, quarterly, TTM), ratios, key statistics, estimates and SEC filings |
 | `EE`, `CF` | Earnings estimates, EPS revisions and beat/miss history; SEC filings |
 | `ANR` | Analyst consensus, targets, rating changes |
+| `BRC` | Equity research: a research note built from live data (Street view, analyst momentum, growth, valuation vs peers, profitability, independent research, technicals, ownership, WSB chatter, risks), a model score vs peers, a valuation football field, research reports from Argus / Morningstar, analyst actions with price-target history, estimates, technical outlook and ESG |
+| `RV` | Comparable-company sheet: P/E, forward P/E, PEG, EV/Sales, EV/EBITDA, margins, ROE, growth, beta and upside to target vs peers, with peer median and premium/discount; add your own peers |
+| `DCF` | Interactive 10-year discounted cash flow from trailing free cash flow, consensus growth and a CAPM discount rate (US 10-year + beta × ERP), with a WACC × terminal-growth sensitivity table |
+| `SPLC` | Supply chain map: who the company sells to, buys from and competes with, from SEC filings, with live prices. `WHY` shows the sentence in the filing; click a company to follow its own chain |
+| `SEG`, `PGEO` | Revenue and operating income by business segment, product, geography and major customer, three fiscal years, from the 10-K |
+| `MGMT` | Executives and pay, ISS governance risk scores, insider holders |
 | `DVD` | Dividend and split history |
 | `COMP` | Normalized multi-security return chart |
 | `BMAP` | World map with toggleable layers: flights, ships, chokepoints and lanes, energy sites, military sites; dark, satellite, NASA daily or night-lights base maps |
@@ -103,7 +112,7 @@ N FED                   news search
 | `EDGE` | One-screen dashboard: sentiment, Fed odds, today's catalysts, insider cluster buys, unusual options, Reddit momentum, prediction markets, congress filings, Baltic tankers |
 | `INSD`, `INSB` | Insider trades for a company (with buy/sell markers on the chart), or the market-wide feed of insider buys, cluster buys, officer buys and big sales |
 | `CONG` | Stock trades disclosed by members of the House, with tickers and amounts extracted from the filings |
-| `HDS` | Institutional, fund and insider holders |
+| `HDS` | Institutional, fund and insider holders, with the biggest buyers and sellers among them and insiders' net open-market trades |
 | `OMON`, `UOA` | Options chain with put/call ratio, max pain and implied move; scan for unusual options activity |
 | `SI`, `SHRT` | Short interest and daily FINRA short volume for a stock; market-wide short-volume leaders |
 | `WIRP` | Fed funds futures: implied rate path and odds for each FOMC meeting |
