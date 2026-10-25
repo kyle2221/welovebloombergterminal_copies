@@ -2742,19 +2742,21 @@ const rateBadge = k => k ? `<span class="rate ${rateCls(k)}">${esc(String(k).rep
 const fyOf = e => 'FY' + String(e).slice(0, 4);
 
 // ---- SPLC: supply chain
-const SPLC_TABS = [['map', 'MAP'], ['customers', 'CUSTOMERS'], ['suppliers', 'SUPPLIERS'], ['competitors', 'COMPETITORS'], ['disclosed', 'SELF-REPORTED']];
+const SPLC_TABS = [['map', 'MAP'], ['customers', 'CUSTOMERS'], ['suppliers', 'SUPPLIERS'], ['competitors', 'COMPETITORS'], ['partners', 'PARTNERS'], ['disclosed', 'SELF-REPORTED']];
 const REL = {
-  customers: { t: 'Customers', sub: co => `buy from ${co}`, c: '#21d07a', how: co => `Their filings say they buy from or rely on ${co} (“purchases from …”, “manufactured by …”, “rely on …”).` },
-  suppliers: { t: 'Suppliers', sub: co => `sell to ${co}`, c: '#4aa8ff', how: co => `Their filings name ${co} as a customer (“sales to …”, “… accounted for x% of revenue”).` },
-  competitors: { t: 'Competitors', sub: co => `compete with ${co}`, c: '#ff6b6b', how: co => `Their filings name ${co} as a competitor.` },
+  customers: { t: 'Customers', sub: co => `buy from ${co}`, c: '#21d07a', how: co => `Their annual reports name ${co} as a supplier or vendor, or say they purchase from, rely on or depend on it.` },
+  suppliers: { t: 'Suppliers', sub: co => `sell to ${co}`, c: '#4aa8ff', how: co => `Their annual reports name ${co} as a customer (“sales to …”, “… accounted for x% of revenue”).` },
+  competitors: { t: 'Competitors', sub: co => `compete with ${co}`, c: '#ff6b6b', how: co => `Their annual reports name ${co} as a competitor.` },
+  partners: { t: 'Partners', sub: co => `partner with ${co}`, c: '#ffd84d', how: co => `Their annual reports describe a partnership, collaboration or alliance with ${co}.` },
 };
 function splcMap(d, y) {
   const co = d.names?.[0] || nameOf(y), W = 1000, H = 430, cx = 500, cy = 190;
   const named = d.disclosed.filter(r => r.side === 'customer' && !r.anon).map(r => ({ name: r.who, sym: null, tag: `${pf(r.pct, 0)} of ${r.benchmark}`, w: 6 }));
   const col = (list, x, kind) => list.map((r, i, a) => ({ ...r, kind, x, y: 34 + (a.length === 1 ? 140 : i * (300 / Math.max(1, a.length - 1))) }));
-  const left = col(d.suppliers.slice(0, 9).map(r => ({ name: r.name, sym: r.sym, tag: `${r.filings} filing${r.filings > 1 ? 's' : ''}`, w: r.filings })), 150, 'suppliers');
-  const right = col([...named, ...d.customers.slice(0, 9 - Math.min(3, named.length)).map(r => ({ name: r.name, sym: r.sym, tag: `${r.filings} filing${r.filings > 1 ? 's' : ''}`, w: r.filings }))].slice(0, 9), 850, 'customers');
-  const comp = d.competitors.slice(0, 6), bottom = comp.map((r, i) => ({ name: r.name, sym: r.sym, tag: `${r.filings} filing${r.filings > 1 ? 's' : ''}`, w: r.filings, kind: 'competitors', x: comp.length === 1 ? cx : 170 + i * (660 / Math.max(1, comp.length - 1)), y: 395 }));
+  const tag = r => `${r.n} mention${r.n > 1 ? 's' : ''}`;
+  const left = col(d.suppliers.slice(0, 9).map(r => ({ name: r.name, sym: r.sym, tag: tag(r), w: r.n })), 150, 'suppliers');
+  const right = col([...named, ...d.customers.slice(0, 9 - Math.min(3, named.length)).map(r => ({ name: r.name, sym: r.sym, tag: tag(r), w: r.n }))].slice(0, 9), 850, 'customers');
+  const comp = d.competitors.slice(0, 6), bottom = comp.map((r, i) => ({ name: r.name, sym: r.sym, tag: tag(r), w: r.n, kind: 'competitors', x: comp.length === 1 ? cx : 170 + i * (660 / Math.max(1, comp.length - 1)), y: 395 }));
   const trunc = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s;
   const node = n => {
     const c = REL[n.kind].c, cmd = n.sym ? ` data-cmd="${esc(ySym(n.sym))} SPLC" style="cursor:pointer"` : '';
@@ -2774,12 +2776,14 @@ function splcMap(d, y) {
 }
 function splcTable(p, d, kind, y, n) {
   const rows = d[kind].slice(0, n), co = d.names?.[0] || nameOf(y);
-  if (!rows.length) return `<div class="dim">No filings in the last two years name ${esc(co)} this way.</div>`;
-  return `<div class="dim" style="margin-bottom:4px">${esc(REL[kind].how(co))}</div><table><thead><tr><th class="n">#</th><th class="l">Company</th><th class="l">Ticker</th><th>Last</th><th>%Chg</th><th title="Filings that mention the relationship">Filings</th><th class="l">Latest</th><th></th></tr></thead><tbody>` +
+  if (!rows.length) return `<div class="dim">None of the annual reports that mention ${esc(co)} most describe it this way.</div>`;
+  const nameRe = new RegExp(`\\b(${(d.names || [co]).flatMap(n => [n, n.toUpperCase(), n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()]).map(reEsc).join('|')})\\b`, 'g');
+  return `<div class="dim" style="margin-bottom:4px">${esc(REL[kind].how(co))}</div><table><thead><tr><th class="n">#</th><th class="l">Company</th><th class="l">Ticker</th><th>Last</th><th>%Chg</th><th title="Sentences in its filing that describe this relationship">Mentions</th><th class="l">Filing</th><th></th></tr></thead><tbody>` +
     rows.map(r => {
       const s = r.sym ? ySym(r.sym) : null;
       if (s) p.actions.push(`${s} SPLC`);
-      return `<tr class="${s ? 'clk' : ''}"${s ? ` data-cmd="${esc(s)} SPLC"` : ''}><td class="n">${s ? p.actions.length + ')' : ''}</td><td class="l amb">${esc(r.name)}</td><td class="l">${s ? tkChip(s) : '<span class="dim">private / no ticker</span>'}</td><td>${s ? L(s, 'price') : ''}</td><td>${s ? L(s, 'pct') : ''}</td><td>${r.filings}</td><td class="l dim">${esc(r.form || '')} ${esc(r.last)}</td><td>${r.url ? `<button class="tab" data-why="${esc(r.url)}" data-kind="${kind}" title="Show the sentences that name ${esc(co)}">WHY</button>` : ''}</td></tr><tr class="why" hidden><td></td><td colspan="7"></td></tr>`;
+      const ex = (r.ex || []).map(t => `<div class="quote">${esc(t).replace(nameRe, m => `<mark>${m}</mark>`)}</div>`).join('');
+      return `<tr class="${s ? 'clk' : ''}"${s ? ` data-cmd="${esc(s)} SPLC"` : ''}><td class="n">${s ? p.actions.length + ')' : ''}</td><td class="l amb">${esc(r.name)}</td><td class="l">${s ? tkChip(s) : '<span class="dim">private / no ticker</span>'}</td><td>${s ? L(s, 'price') : ''}</td><td>${s ? L(s, 'pct') : ''}</td><td>${r.n}</td><td class="l dim">${esc(r.form || '')} ${esc(r.last)}</td><td><button class="tab" data-why title="Show the sentences that name ${esc(co)}">WHY</button></td></tr><tr class="why" hidden><td></td><td colspan="7">${ex}<a class="blu" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Open ${esc(r.form || 'filing')} ↗</a></td></tr>`;
     }).join('') + '</tbody></table>';
 }
 function splcDisclosed(d, full) {
@@ -2804,23 +2808,18 @@ FN.SPLC = {
     getSplc(y).then(d => {
       if (!p.alive(el)) return;
       const co = d.names?.[0] || nameOf(y);
-      subscribe(p, [...d.customers, ...d.suppliers, ...d.competitors].map(x => x.sym && ySym(x.sym)).filter(Boolean).slice(0, 120));
+      subscribe(p, [...d.customers, ...d.suppliers, ...d.competitors, ...d.partners].map(x => x.sym && ySym(x.sym)).filter(Boolean).slice(0, 120));
       p.actions = [];
       const cnt = k => d[k].length;
-      let h = `<div class="dim" style="margin-bottom:8px;white-space:normal">${d.filing ? `Self-reported: ${esc(d.name)}'s <a class="blu" href="${esc(d.filing.doc)}" target="_blank" rel="noopener noreferrer">${esc(d.filing.form)}</a> filed ${esc(d.filing.filed)}. ` : d.filingErr ? `<span class="yel">${esc(d.filingErr)}.</span> ` : ''}Relationships: SEC EDGAR full-text search of 10-K, 10-Q, 20-F and S-1 filings from the last two years that mention “${esc(d.names.join('” or “'))}” — <span class="up">${cnt('customers')} customers</span>, <span class="blu">${cnt('suppliers')} suppliers</span>, <span style="color:${REL.competitors.c}">${cnt('competitors')} competitors</span>.${d.errs?.length ? ` <span class="yel">(${esc(d.errs[0])})</span>` : ''}</div>`;
-      if (tab === 'map') h += splcMap(d, y) + `<div class="cols wide" style="margin-top:10px">${['customers', 'suppliers', 'competitors'].map(k => box(`${REL[k].t} — ${esc(REL[k].sub(co))}`, splcTable(p, d, k, y, 10))).join('')}${splcDisclosed(d, false)}</div>`;
+      let h = `<div class="dim" style="margin-bottom:8px;white-space:normal">${d.filing ? `Self-reported: ${esc(d.name)}'s <a class="blu" href="${esc(d.filing.doc)}" target="_blank" rel="noopener noreferrer">${esc(d.filing.form)}</a> filed ${esc(d.filing.filed)}. ` : d.filingErr ? `<span class="yel">${esc(d.filingErr)}.</span> ` : ''}Relationships: read the ${d.scanned} recent 10-K / 20-F / S-1 filings (of ${d.found} on EDGAR) that mention “${esc(d.names.join('” or “'))}” most, and classified every sentence naming it — <span class="up">${cnt('customers')} customers</span>, <span class="blu">${cnt('suppliers')} suppliers</span>, <span style="color:${REL.competitors.c}">${cnt('competitors')} competitors</span>, <span class="yel">${cnt('partners')} partners</span>.${d.errs?.length ? ` <span class="yel">(${esc(d.errs[0])})</span>` : ''}</div>`;
+      if (tab === 'map') h += splcMap(d, y) + `<div class="cols wide" style="margin-top:10px">${['customers', 'suppliers', 'competitors', 'partners'].map(k => box(`${REL[k].t} — ${esc(REL[k].sub(co))}`, splcTable(p, d, k, y, 10))).join('')}${splcDisclosed(d, false)}</div>`;
       else if (tab === 'disclosed') h += splcDisclosed(d, true);
       else h += box(`${REL[tab].t} — ${esc(REL[tab].sub(co))}`, splcTable(p, d, tab, y, 40));
-      $('.res', el).innerHTML = h + '<div class="dim" style="margin-top:8px">Click a company to trace its own supply chain; WHY shows the sentences in its filing. Filings count = filings that use the phrases; one mention can be a partnership rather than a sale.</div>';
+      $('.res', el).innerHTML = h + '<div class="dim" style="margin-top:8px">Click a company to trace its own supply chain; WHY shows the sentences from its filing. Relationships are read from the wording around the name, so check the sentences: a company can be both a customer and a competitor.</div>';
       $$('[data-why]', el).forEach(b => b.onclick = e => {
         e.stopPropagation();
-        const tr = b.closest('tr').nextElementSibling, td = tr.lastElementChild;
-        if (!tr.hidden) { tr.hidden = true; return; }
-        tr.hidden = false; td.innerHTML = '<span class="spin"></span>';
-        cachedApi(`why:${b.dataset.kind}:${b.dataset.why}`, 86400e3, `splcwhy?symbol=${encodeURIComponent(y)}&kind=${b.dataset.kind}&url=${encodeURIComponent(b.dataset.why)}`).then(w => {
-          const mark = (t, ph) => esc(t).replace(new RegExp(reEsc(esc(ph)), 'ig'), m => `<mark>${m}</mark>`);
-          td.innerHTML = (w.hits.length ? w.hits.map(x => `<div class="quote">${mark(x.text, x.phrase)}</div>`).join('') : '<span class="dim">The wording is in an exhibit or table of this filing.</span>') + ` <a class="blu" href="${esc(b.dataset.why)}" target="_blank" rel="noopener noreferrer">Open filing ↗</a>`;
-        }).catch(err => { td.innerHTML = `<span class="dn">${esc(err.message)}</span>`; });
+        const tr = b.closest('tr').nextElementSibling;
+        tr.hidden = !tr.hidden;
       });
     }).catch(e => p.alive(el) && fail(el, e, '.res'));
   },
