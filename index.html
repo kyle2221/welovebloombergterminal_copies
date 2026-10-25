@@ -2737,7 +2737,7 @@ const xf = v => ok(v) && v > 0 ? nf(v, 1) + 'x' : '—';
 const median = a => { const s = a.filter(ok).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
 const ySym = s => String(s || '').replace('.', '-'); // EDGAR "BRK.B" -> Yahoo "BRK-B"
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const rateCls = k => /strong_buy|buy|outperform|overweight|add|accumulate/i.test(k) ? 'b' : /sell|under/i.test(k) ? 's' : 'h';
+const rateCls = k => /strong_buy|buy|outperform|overweight|add|accumulate|bull/i.test(k) ? 'b' : /sell|under|bear/i.test(k) ? 's' : 'h';
 const rateBadge = k => k ? `<span class="rate ${rateCls(k)}">${esc(String(k).replace(/_/g, ' ').toUpperCase())}</span>` : '—';
 const fyOf = e => 'FY' + String(e).slice(0, 4);
 
