@@ -3033,7 +3033,7 @@ FN.RV = {
         ${subj ? row(subj, 'subj') : ''}${others.map(r => row(r, '')).join('')}
         <tr class="agg"><td class="l" colspan="4">Peer median</td>${RV_COLS.map(([k, , f]) => `<td>${f(med[k])}</td>`).join('')}<td></td></tr>${prem}
         ${rows.filter(r => r.err).map(r => `<tr><td class="l dim">${esc(r.sym)}</td><td class="l dn" colspan="${RV_COLS.length + 4}">${esc(r.err)}</td></tr>`).join('')}</tbody></table>
-        <div class="dim" style="margin-top:6px">Peers: ${custom ? 'your list' : "Yahoo Finance's similar companies"} — add tickers above. Multiples are trailing unless marked forward; "vs median" shows premium/discount (multiples) or percentage-point gap (margins, growth). Click a row for its research note. Source: Yahoo Finance.</div>`;
+        <div class="dim" style="margin-top:6px">Peers: ${custom ? 'your list' : "same-industry companies, then Yahoo Finance's similar companies"} — add tickers above. Multiples are trailing unless marked forward; "vs median" shows premium/discount (multiples) or percentage-point gap (margins, growth). Click a row for its research note. Source: Yahoo Finance.</div>`;
       $$('th.sort', el).forEach(th => th.onclick = () => { const k = th.dataset.k; dir = k === sortK ? -dir : -1; sortK = k; draw(); });
     };
     (custom ? Promise.resolve(custom) : getRes(y).then(d => d.peers)).then(peers => {
